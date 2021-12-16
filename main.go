@@ -36,7 +36,9 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		lib.LoadKeys(file)
+		if err := lib.LoadKeys(file); err != nil {
+			fmt.Printf("Could not load keys -> %v", err)
+		}
 		file.Close()
 	}
 	err = lib.Start()

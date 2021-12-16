@@ -11,19 +11,28 @@ func (web *WebUI) RenderGameListing(writer io.Writer) error {
 	if len(templateParts) != 2 {
 		return ErrBadTemplate
 	}
-	writer.Write([]byte(templateParts[0]))
+	if _, err := writer.Write([]byte(templateParts[0])); err != nil {
+		return ErrBadTemplate
+	}
+
 	i := 0
 	for _, game := range web.lib.ListTitleFiles() {
 		if i > 0 && i%4 == 0 {
-			writer.Write([]byte(`</div><div class="row">`))
+			if _, err := writer.Write([]byte(`</div><div class="row">`)); err != nil {
+				return ErrBadTemplate
+			}
 		}
 		gameData := []byte(web.renderGameIconCard(game.TitleID))
 		if len(gameData) > 0 {
-			writer.Write(gameData)
+			if _, err := writer.Write(gameData); err != nil {
+				return ErrBadTemplate
+			}
 			i++
 		}
 	}
-	writer.Write([]byte(templateParts[1]))
+	if _, err := writer.Write([]byte(templateParts[1])); err != nil {
+		return ErrBadTemplate
+	}
 	return nil
 }
 

@@ -60,6 +60,9 @@ func (server *Server) getFileFromVirtualPath(path string) (io.ReadSeekCloser, st
 		return nil, "", 0, fmt.Errorf("couldn't lookup path %s", path)
 	}
 	file, err := os.Open(info.Path)
+	if err != nil {
+		return nil, "", 0, fmt.Errorf("couldn't lookup path %s", path)
+	}
 	_, filename := filepath.Split(info.Path)
 	finfo, err := file.Stat()
 	if err != nil {
