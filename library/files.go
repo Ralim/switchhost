@@ -15,6 +15,7 @@ type FileOnDiskRecord struct {
 	TitleID uint64
 	Version uint32
 	Name    string
+	Size    int64
 }
 
 func (r *TitleOnDiskCollection) GetFiles() []FileOnDiskRecord {

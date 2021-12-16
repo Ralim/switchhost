@@ -11,4 +11,5 @@ type FileInfo struct {
 	Version       uint32
 	EmbeddedTitle string
 	Type          cnmt.MetaType
+	Size          int64
 }

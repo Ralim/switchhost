@@ -46,6 +46,7 @@ func (lib *Library) fileScanningWorker() {
 					TitleID: info.TitleID,
 					Version: info.Version,
 					Name:    info.EmbeddedTitle,
+					Size:    info.Size,
 				}
 				gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID)
 				if err == nil {
@@ -98,8 +99,7 @@ func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath
 
 // getFileInfo will return the parsed fileInfo if we know how to decode the file
 func (lib *Library) getFileInfo(sourceFile string) (*formats.FileInfo, error) {
-	ext := filepath.Ext(sourceFile)
-	ext = strings.ToUpper(ext)
+
 	if lib.keys == nil {
 		return nil, errors.New("can't sort files without a loaded key file")
 	}
@@ -108,6 +108,9 @@ func (lib *Library) getFileInfo(sourceFile string) (*formats.FileInfo, error) {
 		return nil, fmt.Errorf("could not determine sorted path for %s due to error %w when opening file", sourceFile, err)
 	}
 	info := formats.FileInfo{}
+
+	ext := filepath.Ext(sourceFile)
+	ext = strings.ToUpper(ext)
 
 	switch ext {
 	case ".NSP":
@@ -121,6 +124,10 @@ func (lib *Library) getFileInfo(sourceFile string) (*formats.FileInfo, error) {
 	}
 	if err != nil {
 		return nil, fmt.Errorf("could not determine sorted path for %s due to error %w during file parsing", sourceFile, err)
+	}
+	fileStat, err := file.Stat()
+	if err == nil {
+		info.Size = fileStat.Size()
 	}
 	return &info, nil
 }

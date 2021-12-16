@@ -12,7 +12,7 @@ import (
 // JSON handler generates a response json listing of the resources known to this instance
 type fileEntry struct {
 	URL  string `json:"url"`
-	Size uint64 `json:"size"`
+	Size int64  `json:"size"`
 	Name string `json:"title"`
 }
 type jsonIndex struct {
@@ -30,7 +30,7 @@ func (server *Server) generateFileJSONPayload(writer io.Writer, hostNameToUse st
 	}
 
 	for _, file := range server.library.ListFiles() {
-		response.Files = append(response.Files, fileEntry{URL: server.GenerateVirtualFilePath(file, hostNameToUse, useHTTPS), Size: 1, Name: utilities.CleanName(file.Name)})
+		response.Files = append(response.Files, fileEntry{URL: server.GenerateVirtualFilePath(file, hostNameToUse, useHTTPS), Size: file.Size, Name: utilities.CleanName(file.Name)})
 		fileinfo, ok := server.library.LookupFileInfo(file)
 		if ok {
 			response.TitleDB[fileinfo.StringID] = fileinfo

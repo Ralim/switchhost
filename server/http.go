@@ -77,6 +77,7 @@ func (server *Server) httpHandlevFile(respWriter http.ResponseWriter, r *http.Re
 			http.Error(respWriter, "Invalid range bytes", http.StatusRequestedRangeNotSatisfiable)
 			return
 		}
+		fmt.Println("Range", startb, endb)
 		_, err = reader.Seek(int64(startb), io.SeekStart)
 		if err != nil {
 			fmt.Println(err)
@@ -96,7 +97,6 @@ func (server *Server) httpHandlevFile(respWriter http.ResponseWriter, r *http.Re
 		_, err = io.Copy(respWriter, reader)
 		if err != nil {
 			fmt.Println(err)
-			http.Error(respWriter, "Sending file failed", http.StatusInternalServerError)
 			return
 		}
 	}
