@@ -1,6 +1,7 @@
 # Switch Host
 
 Yet another local switch game backup management tool.
+
 This is designed to be left running in the background as a small, low resource service.
 
 ## Features
