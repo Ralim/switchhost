@@ -5,6 +5,7 @@ import (
 
 	"github.com/ralim/switchhost/library"
 	"github.com/ralim/switchhost/server/virtualftp"
+	"github.com/ralim/switchhost/settings"
 	titledb "github.com/ralim/switchhost/titledb"
 	"github.com/ralim/switchhost/webui"
 )
@@ -14,17 +15,20 @@ import (
 type Server struct {
 	library  *library.Library
 	webui    *webui.WebUI
-	httpPort int
-	ftpPort  int
+	settings *settings.Settings
 }
 
-func NewServer(lib *library.Library, titledb *titledb.TitlesDB, httpPort, ftpPort int) *Server {
-	return &Server{httpPort: httpPort, ftpPort: ftpPort, library: lib, webui: webui.NewWebUI(lib, titledb)}
+func NewServer(lib *library.Library, titledb *titledb.TitlesDB, settings *settings.Settings) *Server {
+	return &Server{
+		library:  lib,
+		webui:    webui.NewWebUI(lib, titledb),
+		settings: settings,
+	}
 }
 
 func (server *Server) Run() {
 	fmt.Println("Starting servers")
-	go virtualftp.StartFTP(server.library, server.ftpPort)
+	go virtualftp.StartFTP(server.library, server.settings)
 	server.StartHTTP()
 
 }

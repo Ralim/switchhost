@@ -18,6 +18,7 @@ type Settings struct {
 	OrganisationFormat  string   `json:"organisationFormat"`     // Organisation format string
 	EnableSorting       bool     `json:"enableSorting"`          // If sorting should be performed
 	CleanupEmptyFolders bool     `json:"cleanupEmptyFolders"`    // Should we cleanup empty folders in the search and storage paths
+	ServerMOTD          string   `json:"serverMOTD"`             // Server title used for public facing info
 	// Private
 	filePath string
 }
@@ -36,6 +37,7 @@ func NewSettings(path string) *Settings {
 		CleanupEmptyFolders: true,  // Relatively safe
 		HTTPPort:            8080,
 		FTPPort:             2121,
+		ServerMOTD:          "Switchroot",
 		OrganisationFormat:  "{TitleName}/{TitleName} {Type} {VersionDec} [{TitleID}][{Version}]",
 		TitlesDBURLs: []string{
 			// "https://tinfoil.media/repo/db/titles.json",

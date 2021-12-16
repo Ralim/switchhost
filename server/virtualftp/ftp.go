@@ -11,20 +11,22 @@ import (
 	"strconv"
 
 	"github.com/ralim/switchhost/library"
+	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/utilities"
 	"goftp.io/server/v2"
 	ftpserver "goftp.io/server/v2"
 )
 
-func StartFTP(lib *library.Library, port int) {
+func StartFTP(lib *library.Library, settings *settings.Settings) {
 	driver := NewDriver(lib)
 	perm := ftpserver.NewSimplePerm("switch", "switch")
 	opt := &ftpserver.Options{
-		Name:   "switchhost",
-		Driver: driver,
-		Port:   port,
-		Auth:   driver,
-		Perm:   perm,
+		Name:           "switchhost",
+		Driver:         driver,
+		Port:           settings.FTPPort,
+		Auth:           driver,
+		Perm:           perm,
+		WelcomeMessage: settings.ServerMOTD,
 	}
 	// start ftp server
 	ftpServer, err := ftpserver.NewServer(opt)

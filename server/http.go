@@ -17,7 +17,7 @@ var ErrInvalidHeader = errors.New("invalid request header")
 
 func (server *Server) StartHTTP() {
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", server.httpPort), server))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", server.settings.HTTPPort), server))
 }
 
 func (server *Server) httpHandleJSON(respWriter http.ResponseWriter, r *http.Request) {

@@ -44,6 +44,6 @@ func main() {
 		panic(err)
 	}
 
-	server := server.NewServer(lib, Titles, settings.HTTPPort, settings.FTPPort)
+	server := server.NewServer(lib, Titles, settings)
 	server.Run()
 }

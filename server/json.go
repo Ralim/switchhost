@@ -25,7 +25,7 @@ type jsonIndex struct {
 func (server *Server) generateJSONPayload(writer io.Writer, hostNameToUse string, useHTTPS bool) error {
 	response := jsonIndex{
 		Files:   []fileEntry{},
-		MOTD:    "SwitchRoooooot",
+		MOTD:    server.settings.ServerMOTD,
 		TitleDB: make(map[string]titledb.TitleDBEntry),
 	}
 
