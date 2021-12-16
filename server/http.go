@@ -23,7 +23,16 @@ func (server *Server) StartHTTP() {
 func (server *Server) httpHandleJSON(respWriter http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Serving JSON to %+v,%v\n", r.Proto, r.Host)
 	respWriter.Header().Set("Content-Type", "application/json")
-	err := server.generateJSONPayload(respWriter, r.Host, false)
+	err := server.generateFileJSONPayload(respWriter, r.Host, false)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(respWriter, "Generating index failed", http.StatusInternalServerError)
+		return
+	}
+}
+func (server *Server) httpHandleTitlesDB(respWriter http.ResponseWriter, r *http.Request) {
+	respWriter.Header().Set("Content-Type", "application/json")
+	err := server.titledb.DumpToJSON(respWriter)
 	if err != nil {
 		fmt.Println(err)
 		http.Error(respWriter, "Generating index failed", http.StatusInternalServerError)
@@ -126,6 +135,8 @@ func (server *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		server.httpHandlevFile(res, req)
 	case "index.json":
 		server.httpHandleJSON(res, req)
+	case "titledb.json":
+		server.httpHandleTitlesDB(res, req)
 	case "skeleton.min.css":
 		server.httpHandleCSS(res, req)
 	case "index.html":

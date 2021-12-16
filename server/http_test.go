@@ -33,7 +33,7 @@ func TestHTTPServerbasics(t *testing.T) {
 	//Now we can fake poke server handlers
 	tempBuffer := bytes.NewBuffer([]byte{})
 
-	err := server.generateJSONPayload(tempBuffer, "test", false)
+	err := server.generateFileJSONPayload(tempBuffer, "test", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestHTTPServerbasics(t *testing.T) {
 		Name:    "UnitTest",
 	}
 	lib.AddFileRecord(file)
-	err = server.generateJSONPayload(tempBuffer, "test", false)
+	err = server.generateFileJSONPayload(tempBuffer, "test", false)
 	if err != nil {
 		t.Fatal(err)
 	}

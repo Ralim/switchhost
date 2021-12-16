@@ -22,7 +22,7 @@ type jsonIndex struct {
 	TitleDB map[string]titledb.TitleDBEntry `json:"titledb"`
 }
 
-func (server *Server) generateJSONPayload(writer io.Writer, hostNameToUse string, useHTTPS bool) error {
+func (server *Server) generateFileJSONPayload(writer io.Writer, hostNameToUse string, useHTTPS bool) error {
 	response := jsonIndex{
 		Files:   []fileEntry{},
 		MOTD:    server.settings.ServerMOTD,

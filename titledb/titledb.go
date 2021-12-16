@@ -3,6 +3,7 @@ package titledb
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -104,4 +105,15 @@ func (db *TitlesDB) QueryGameFromTitleID(titleID uint64) (TitleDBEntry, bool) {
 	defer db.entriesLock.RUnlock()
 	value, ok := db.entries[titleID]
 	return value, ok
+}
+
+func (db *TitlesDB) DumpToJSON(writer io.Writer) error {
+	db.entriesLock.RLock()
+	defer db.entriesLock.RUnlock()
+	data, err := json.Marshal(db.entries)
+	if err != nil {
+		return fmt.Errorf("cant JSON'ify TitleDB - %w", err)
+	}
+	_, err = writer.Write(data)
+	return err
 }

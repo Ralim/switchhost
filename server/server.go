@@ -16,6 +16,7 @@ type Server struct {
 	library  *library.Library
 	webui    *webui.WebUI
 	settings *settings.Settings
+	titledb  *titledb.TitlesDB
 }
 
 func NewServer(lib *library.Library, titledb *titledb.TitlesDB, settings *settings.Settings) *Server {
@@ -23,6 +24,7 @@ func NewServer(lib *library.Library, titledb *titledb.TitlesDB, settings *settin
 		library:  lib,
 		webui:    webui.NewWebUI(lib, titledb),
 		settings: settings,
+		titledb:  titledb,
 	}
 }
 
