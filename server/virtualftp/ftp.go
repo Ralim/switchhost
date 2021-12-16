@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/ralim/switchhost/library"
+	"github.com/ralim/switchhost/utilities"
 	"goftp.io/server/v2"
 	ftpserver "goftp.io/server/v2"
 )
@@ -70,7 +71,7 @@ func (driver *FTPDriver) dirPathToTitleID(path string) (uint64, error) {
 }
 
 func (driver *FTPDriver) getFakeFolderFileInfo(titleInfo library.FileOnDiskRecord) os.FileInfo {
-	virtualpath := fmt.Sprintf("%s [%d]", titleInfo.Name, titleInfo.TitleID)
+	virtualpath := fmt.Sprintf("%s [%d]", utilities.CleanName(titleInfo.Name), titleInfo.TitleID)
 	info := NewFakeFolder(virtualpath)
 	return &info
 }

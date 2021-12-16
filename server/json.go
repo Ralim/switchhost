@@ -6,6 +6,7 @@ import (
 	"io"
 
 	titledb "github.com/ralim/switchhost/titledb"
+	"github.com/ralim/switchhost/utilities"
 )
 
 // JSON handler generates a response json listing of the resources known to this instance
@@ -29,7 +30,7 @@ func (server *Server) generateJSONPayload(writer io.Writer, hostNameToUse string
 	}
 
 	for _, file := range server.library.ListFiles() {
-		response.Files = append(response.Files, fileEntry{URL: server.GenerateVirtualFilePath(file, hostNameToUse, useHTTPS), Size: 1, Name: "test"})
+		response.Files = append(response.Files, fileEntry{URL: server.GenerateVirtualFilePath(file, hostNameToUse, useHTTPS), Size: 1, Name: utilities.CleanName(file.Name)})
 		fileinfo, ok := server.library.LookupFileInfo(file)
 		if ok {
 			response.TitleDB[fileinfo.StringID] = fileinfo

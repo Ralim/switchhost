@@ -77,6 +77,9 @@ func (lib *Library) AddFileRecord(file *FileOnDiskRecord) {
 	//Thus; base titleID can be found by AND'ing with 0xFFFFFFFFFFFFE000
 	// Then we can sort by the fields to know what kind of file it is
 	baseTitle := file.TitleID & 0xFFFFFFFFFFFFE000
+	if baseTitle == 0 { // If we masked out all bits, not a valid file to install most likely
+		return
+	}
 	oldValue, ok := lib.filesKnown[baseTitle]
 	if !ok {
 		//Need to make entry

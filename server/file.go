@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/ralim/switchhost/library"
+	"github.com/ralim/switchhost/utilities"
 )
 
 // Since we dont want to expose the file system to users, we provide virtual paths for all known tracked files
@@ -22,7 +23,7 @@ import (
 
 func (server *Server) GenerateVirtualFilePath(file library.FileOnDiskRecord, hostNameToUse string, useHTTPS bool) string {
 	ext := path.Ext(file.Path)
-	fileFinalName := fmt.Sprintf("%s [%016X][v%d]%s", file.Name, file.TitleID, file.Version, ext)
+	fileFinalName := fmt.Sprintf("%s [%016X][v%d]%s", utilities.CleanName(file.Name), file.TitleID, file.Version, ext)
 	base := fmt.Sprintf("/vfile/%d/%d/data.bin#%s", file.TitleID, file.Version, fileFinalName)
 	if useHTTPS {
 		base = "https://" + hostNameToUse + base

@@ -65,13 +65,13 @@ func (server *Server) httpHandlevFile(respWriter http.ResponseWriter, r *http.Re
 		startb, endb, err := server.parseRangeHeader(rangeHeader[0])
 		if err != nil {
 			fmt.Println(err)
-			http.Error(respWriter, "Invalid range bytes", http.StatusBadRequest)
+			http.Error(respWriter, "Invalid range bytes", http.StatusRequestedRangeNotSatisfiable)
 			return
 		}
 		_, err = reader.Seek(int64(startb), io.SeekStart)
 		if err != nil {
 			fmt.Println(err)
-			http.Error(respWriter, "Invalid range bytes", http.StatusBadRequest)
+			http.Error(respWriter, "Invalid range bytes", http.StatusRequestedRangeNotSatisfiable)
 			return
 		}
 		//Now safe to send final headers and push the payload out
@@ -81,7 +81,6 @@ func (server *Server) httpHandlevFile(respWriter http.ResponseWriter, r *http.Re
 		_, err = io.CopyN(respWriter, reader, endb-startb+1)
 		if err != nil {
 			fmt.Println(err)
-			http.Error(respWriter, "Sending file failed", http.StatusBadRequest)
 			return
 		}
 	} else {
