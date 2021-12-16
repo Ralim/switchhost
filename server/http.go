@@ -123,8 +123,8 @@ func (server *Server) httpHandleCSS(respWriter http.ResponseWriter, r *http.Requ
 }
 func (server *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	if req.Method != "GET" {
-		http.Error(res, "Only GET and PUT are allowed", http.StatusMethodNotAllowed)
-
+		http.Error(res, "Only GET is allowed", http.StatusMethodNotAllowed)
+		return
 	}
 
 	var head string
