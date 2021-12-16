@@ -1,6 +1,6 @@
 package library
 
-import titledb "github.com/ralim/switchhost/titledb"
+import "github.com/ralim/switchhost/titledb"
 
 //TitleOnDiskCollection is a semi-logical grouping of titles on disk
 

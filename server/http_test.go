@@ -10,7 +10,7 @@ import (
 
 	"github.com/ralim/switchhost/library"
 	"github.com/ralim/switchhost/settings"
-	titledb "github.com/ralim/switchhost/titledb"
+	"github.com/ralim/switchhost/titledb"
 )
 
 func maketestServer(t *testing.T) (*Server, *library.Library, string) {

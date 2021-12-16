@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	titledb "github.com/ralim/switchhost/titledb"
+	"github.com/ralim/switchhost/titledb"
 	"github.com/ralim/switchhost/utilities"
 )
 

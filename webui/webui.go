@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/ralim/switchhost/library"
-	titledb "github.com/ralim/switchhost/titledb"
+	"github.com/ralim/switchhost/titledb"
 
 	_ "embed"
 )

@@ -7,7 +7,7 @@ import (
 	"github.com/ralim/switchhost/library"
 	"github.com/ralim/switchhost/server"
 	"github.com/ralim/switchhost/settings"
-	titledb "github.com/ralim/switchhost/titledb"
+	"github.com/ralim/switchhost/titledb"
 )
 
 func main() {

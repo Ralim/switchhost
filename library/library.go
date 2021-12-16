@@ -8,7 +8,7 @@ import (
 
 	"github.com/ralim/switchhost/keystore"
 	"github.com/ralim/switchhost/settings"
-	titledb "github.com/ralim/switchhost/titledb"
+	"github.com/ralim/switchhost/titledb"
 )
 
 // Library manages the representation of the game files on disk + their metadata
