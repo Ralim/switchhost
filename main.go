@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/ralim/switchhost/library"
 	"github.com/ralim/switchhost/server"
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/titledb"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
@@ -31,13 +31,14 @@ func main() {
 	lib := library.NewLibrary(Titles, settings)
 
 	if _, err := os.Stat(userHomeDir + "/.switch/prod.keys"); err == nil {
-		fmt.Println("Loading keys")
+		log.Info().Msg("Loading keys")
+
 		file, err := os.Open(userHomeDir + "/.switch/prod.keys")
 		if err != nil {
 			panic(err)
 		}
 		if err := lib.LoadKeys(file); err != nil {
-			fmt.Printf("Could not load keys -> %v", err)
+			log.Info().Msgf("Could not load keys -> %v", err)
 		}
 		file.Close()
 	}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/utilities"
+	"github.com/rs/zerolog/log"
 )
 
 /*
@@ -64,12 +65,12 @@ func (db *TitlesDB) UpdateTitlesDB() error {
 	for _, fileURL := range db.settings.TitlesDBURLs {
 		path, err := utilities.DownloadFileWithVersioning(fileURL, db.settings.CacheFolder)
 		if err != nil {
-			fmt.Printf("Downloading latest TitlesDB failed, will continue using cached - %v", err)
+			log.Warn().Msgf("Downloading latest TitlesDB failed, will continue using cached - %v", err)
 		}
 		if err := db.injestTitleDBFile(path); err != nil {
 			return fmt.Errorf("failed to update titleDB due to err during parsing - %w", err)
 		} else {
-			fmt.Printf("Loaded TitleDB %s\n", fileURL)
+			log.Info().Msgf("Loaded TitleDB %s\n", fileURL)
 		}
 	}
 	return nil
@@ -86,7 +87,7 @@ func (db *TitlesDB) injestTitleDBFile(path string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse the Titledb - %w", err)
 	}
-	fmt.Printf("Loading %d entries from %s\n", len(entries), path)
+	log.Info().Msgf("Loading %d entries from %s\n", len(entries), path)
 	//Have to insert all entries into the map with update
 	db.entriesLock.Lock()
 	defer db.entriesLock.Unlock()

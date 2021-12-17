@@ -13,6 +13,7 @@ import (
 	partitionfs "github.com/ralim/switchhost/formats/partitionFS"
 	"github.com/ralim/switchhost/keystore"
 	"github.com/ralim/switchhost/settings"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -72,7 +73,7 @@ func ParseXCIToMetaData(keystore *keystore.Keystore, settings *settings.Settings
 			if currCnmt.Type != cnmt.DLC {
 				nacp, err := nacp.ExtractNACP(keystore, currCnmt, reader, secureHfs0, uint64(secureOffset))
 				if err != nil {
-					fmt.Printf("Failed to extract NACP info - %v\n", err.Error())
+					log.Warn().Msgf("Failed to extract NACP info from file %+v - %v", &currCnmt.Type, err.Error())
 				} else {
 					// currCnmt.Ncap = nacp
 					info.EmbeddedTitle = nacp.GetSuggestedTitle(settings)

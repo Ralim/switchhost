@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 type Settings struct {
@@ -19,6 +22,8 @@ type Settings struct {
 	EnableSorting       bool     `json:"enableSorting"`          // If sorting should be performed
 	CleanupEmptyFolders bool     `json:"cleanupEmptyFolders"`    // Should we cleanup empty folders in the search and storage paths
 	ServerMOTD          string   `json:"serverMOTD"`             // Server title used for public facing info
+	LogLevel            int      `json:"logLevel"`               // Log level, higher numbers reduce log output
+	LogFile             string   `json:"logPath"`                // Path to persist logs to, if empty none are persisted
 	// Private
 	filePath string
 }
@@ -38,6 +43,8 @@ func NewSettings(path string) *Settings {
 		HTTPPort:            8080,
 		FTPPort:             2121,
 		ServerMOTD:          "Switchroot",
+		LogLevel:            1,  //Info
+		LogFile:             "", // No log file
 		OrganisationFormat:  "{TitleName}/{TitleName} {Type} {VersionDec} [{TitleID}][{Version}]",
 		TitlesDBURLs: []string{
 			// "https://tinfoil.media/repo/db/titles.json",
@@ -45,10 +52,13 @@ func NewSettings(path string) *Settings {
 			"https://raw.githubusercontent.com/blawar/titledb/master/AU.en.json",
 		},
 	}
-	//Load the settings file if it exsts, which will override the defaults above if specified
+	// Load the settings file if it exsts, which will override the defaults above if specified
 	settings.Load()
-	//Save to preserve if we have added anything to the file, and drop no-longer used settings for clarity
+	// Save to preserve if we have added anything to the file, and drop no-longer used settings for clarity
 	settings.Save()
+	// Setup the logging
+	settings.setupLogging()
+	log.Info().Msg("Settings Loaded")
 	return settings
 }
 
@@ -59,7 +69,7 @@ func (s *Settings) Load() {
 		return
 	}
 	if err := json.Unmarshal(data, s); err != nil {
-		fmt.Println("Couldn't load settings", err)
+		log.Warn().Msgf("Couldn't load settings -> %v", err)
 	}
 }
 
@@ -79,4 +89,9 @@ func (s *Settings) GetAllScanFolders() []string {
 	res := []string{s.StorageFolder}
 	res = append(res, s.FoldersToScan...)
 	return res
+}
+
+func (s *Settings) setupLogging() {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	zerolog.SetGlobalLevel(zerolog.Level(s.LogLevel))
 }

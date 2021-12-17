@@ -12,6 +12,7 @@ import (
 	partitionfs "github.com/ralim/switchhost/formats/partitionFS"
 	"github.com/ralim/switchhost/keystore"
 	"github.com/ralim/switchhost/settings"
+	"github.com/rs/zerolog/log"
 )
 
 //Implements the minimum to parse the details we care about out of an NSP file
@@ -46,7 +47,7 @@ func ParseNSPToMetaData(keystore *keystore.Keystore, settings *settings.Settings
 			if currCnmt.Type != cnmt.DLC {
 				nacp, err := nacp.ExtractNACP(keystore, currCnmt, reader, pfs0Header, 0)
 				if err != nil {
-					fmt.Printf("Failed to extract NACP info - %v\n", err.Error())
+					log.Warn().Msgf("Failed to extract NACP info from file %+v - %v", &currCnmt.Type, err.Error())
 				} else {
 					// currCnmt.Ncap = nacp
 					info.EmbeddedTitle = nacp.GetSuggestedTitle(settings)

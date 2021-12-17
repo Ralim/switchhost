@@ -9,6 +9,7 @@ import (
 	"github.com/ralim/switchhost/keystore"
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/titledb"
+	"github.com/rs/zerolog/log"
 )
 
 // Library manages the representation of the game files on disk + their metadata
@@ -89,7 +90,7 @@ func (lib *Library) ScanFolder(path string) error {
 
 			if !info.IsDir() {
 				//This is a file, so push it to the queue
-				fmt.Printf("File scan requested for %s\r\n", path)
+				log.Debug().Msgf("File scan requested for %s\r\n", path)
 				lib.fileScanRequests <- path
 			}
 		}

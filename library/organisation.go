@@ -9,7 +9,9 @@ import (
 	"strings"
 
 	"github.com/ralim/switchhost/formats"
+	cnmt "github.com/ralim/switchhost/formats/CNMT"
 	"github.com/ralim/switchhost/utilities"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -33,10 +35,10 @@ func (lib *Library) fileScanningWorker() {
 	for requestedPath := range lib.fileScanRequests {
 		if requestedPath, err := filepath.Abs(requestedPath); err == nil {
 
-			fmt.Printf("Starting requested scan of %s\r\n", requestedPath)
+			log.Debug().Msgf("Starting requested scan of %s\r\n", requestedPath)
 			info, err := lib.getFileInfo(requestedPath)
 			if err != nil {
-				fmt.Printf("could not determine sorted path for %s due to error %v during file parsing", requestedPath, err)
+				log.Warn().Msgf("could not determine sorted path for %s due to error %v during file parsing", requestedPath, err)
 			} else {
 				fileResultingPath := lib.sortFileIfApplicable(info, requestedPath)
 
@@ -55,7 +57,7 @@ func (lib *Library) fileScanningWorker() {
 
 				lib.AddFileRecord(record)
 			}
-			fmt.Printf("Finished scan of %s\r\n", requestedPath)
+			log.Debug().Msgf("Finished scan of %s\r\n", requestedPath)
 		}
 	}
 }
@@ -72,21 +74,21 @@ func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath
 	}
 	newPath, err := lib.determineIdealFilePath(infoInfo, currentPath)
 	if err != nil {
-		fmt.Printf("Cant sort file %s due to error %v\n", currentPath, err)
+		log.Warn().Msgf("Cant sort file %s due to error %v\n", currentPath, err)
 		return currentPath
 	}
 	if err == nil {
 		if newPath != currentPath {
-			fmt.Printf("Moving file %s to %s\n", currentPath, newPath)
+			log.Info().Msgf("Moving file %s to %s\n", currentPath, newPath)
 			err := os.MkdirAll(path.Dir(newPath), 0755)
 			if err != nil {
-				fmt.Printf("Could not move %s to %s, due to err %v\n", currentPath, newPath, err)
+				log.Warn().Msgf("Could not move %s to %s, due to err %v\n", currentPath, newPath, err)
 			} else {
 				err = utilities.RenameFile(currentPath, newPath)
 				if err != nil {
-					fmt.Printf("Could not move %s to %s, due to err %v\n", currentPath, newPath, err)
+					log.Warn().Msgf("Could not move %s to %s, due to err %v\n", currentPath, newPath, err)
 				} else {
-					fmt.Println("Done")
+					log.Debug().Msgf("Done moving %s -> %s", currentPath, newPath)
 					//Push the folder to the cleanup path
 					lib.folderCleanupRequests <- filepath.Dir(currentPath)
 					return newPath
@@ -121,9 +123,14 @@ func (lib *Library) getFileInfo(sourceFile string) (*formats.FileInfo, error) {
 		info, err = formats.ParseXCIToMetaData(lib.keys, lib.settings, file)
 	case ".XCZ":
 		info, err = formats.ParseXCIToMetaData(lib.keys, lib.settings, file)
+	default:
+		return &info, fmt.Errorf("not a valid file type - %s", sourceFile)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("could not determine sorted path for %s due to error %w during file parsing", sourceFile, err)
+	}
+	if len(info.EmbeddedTitle) == 0 && info.Type != cnmt.DLC {
+		log.Info().Msgf("Parsing embedded title failed for file %s", sourceFile)
 	}
 	fileStat, err := file.Stat()
 	if err == nil {

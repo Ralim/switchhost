@@ -21,11 +21,9 @@ func (server *Server) StartHTTP() {
 }
 
 func (server *Server) httpHandleJSON(respWriter http.ResponseWriter, r *http.Request) {
-	fmt.Printf("Serving JSON to %+v,%v\n", r.Proto, r.Host)
 	respWriter.Header().Set("Content-Type", "application/json")
 	err := server.generateFileJSONPayload(respWriter, r.Host, false)
 	if err != nil {
-		fmt.Println(err)
 		http.Error(respWriter, "Generating index failed", http.StatusInternalServerError)
 		return
 	}
@@ -34,7 +32,6 @@ func (server *Server) httpHandleTitlesDB(respWriter http.ResponseWriter, r *http
 	respWriter.Header().Set("Content-Type", "application/json")
 	err := server.titledb.DumpToJSON(respWriter)
 	if err != nil {
-		fmt.Println(err)
 		http.Error(respWriter, "Generating index failed", http.StatusInternalServerError)
 		return
 	}
@@ -57,11 +54,9 @@ func (server *Server) parseRangeHeader(rangeHeader string) (int64, int64, error)
 	return startB, endB, nil
 }
 func (server *Server) httpHandlevFile(respWriter http.ResponseWriter, r *http.Request) {
-	fmt.Printf("Serving File %+v to %+v\n", r.URL, r.Header)
 
 	reader, name, size, err := server.getFileFromVirtualPath(r.URL.Path)
 	if err != nil {
-		fmt.Println(err)
 		http.Error(respWriter, "Path not found", http.StatusNotFound)
 		return
 	}
@@ -73,14 +68,11 @@ func (server *Server) httpHandlevFile(respWriter http.ResponseWriter, r *http.Re
 	if ok {
 		startb, endb, err := server.parseRangeHeader(rangeHeader[0])
 		if err != nil {
-			fmt.Println(err)
 			http.Error(respWriter, "Invalid range bytes", http.StatusRequestedRangeNotSatisfiable)
 			return
 		}
-		fmt.Println("Range", startb, endb)
 		_, err = reader.Seek(int64(startb), io.SeekStart)
 		if err != nil {
-			fmt.Println(err)
 			http.Error(respWriter, "Invalid range bytes", http.StatusRequestedRangeNotSatisfiable)
 			return
 		}
@@ -88,17 +80,9 @@ func (server *Server) httpHandlevFile(respWriter http.ResponseWriter, r *http.Re
 		respWriter.Header().Add("Content-Range", fmt.Sprintf("%d-%d/%d", startb, endb, size))
 		respWriter.WriteHeader(http.StatusPartialContent)
 
-		_, err = io.CopyN(respWriter, reader, endb-startb+1)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+		_, _ = io.CopyN(respWriter, reader, endb-startb+1)
 	} else {
-		_, err = io.Copy(respWriter, reader)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+		_, _ = io.Copy(respWriter, reader)
 	}
 
 }
@@ -107,7 +91,6 @@ func (server *Server) httpHandleIndex(respWriter http.ResponseWriter, r *http.Re
 	err := server.webui.RenderGameListing(respWriter)
 
 	if err != nil {
-		fmt.Println(err)
 		http.Error(respWriter, "Sending file failed", http.StatusInternalServerError)
 		return
 	}
@@ -116,7 +99,6 @@ func (server *Server) httpHandleCSS(respWriter http.ResponseWriter, r *http.Requ
 	respWriter.Header().Set("Content-Type", "text/css")
 	_, err := respWriter.Write(webui.SkeletonCss)
 	if err != nil {
-		fmt.Println(err)
 		http.Error(respWriter, "Sending file failed", http.StatusInternalServerError)
 		return
 	}

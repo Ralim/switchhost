@@ -1,11 +1,11 @@
 package library
 
 import (
-	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/ralim/switchhost/utilities"
 )
@@ -46,7 +46,7 @@ func recursivelyCheckForEmptyFolders(pathin string) {
 				if info.IsDir() {
 					recursivelyCheckForEmptyFolders(path)
 					if empty, err := utilities.IsEmpty(path); err == nil && empty {
-						fmt.Printf("Removing %s as its empty\n", path)
+						log.Info().Msgf("Removing %s as its empty\n", path)
 						os.Remove(path)
 					}
 				}
@@ -54,6 +54,6 @@ func recursivelyCheckForEmptyFolders(pathin string) {
 			return nil
 		})
 	if err != nil {
-		log.Println(err)
+		log.Warn().Msgf("Cant clean folder %s due to error %v", pathin, err)
 	}
 }

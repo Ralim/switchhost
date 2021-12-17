@@ -136,7 +136,6 @@ func (driver *FTPDriver) getRealFilePathFromVirtual(path string) (string, bool) 
 }
 
 func (driver *FTPDriver) Stat(ctx *server.Context, path string) (os.FileInfo, error) {
-	fmt.Println("stat>", path)
 	if path == "/" {
 		info := NewFakeFolder(path)
 		return &info, nil

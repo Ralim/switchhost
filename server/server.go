@@ -1,13 +1,12 @@
 package server
 
 import (
-	"fmt"
-
 	"github.com/ralim/switchhost/library"
 	"github.com/ralim/switchhost/server/virtualftp"
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/titledb"
 	"github.com/ralim/switchhost/webui"
+	"github.com/rs/zerolog/log"
 )
 
 //Server is the main server that renders out the files in the database
@@ -29,7 +28,7 @@ func NewServer(lib *library.Library, titledb *titledb.TitlesDB, settings *settin
 }
 
 func (server *Server) Run() {
-	fmt.Println("Starting servers")
+	log.Info().Msg("Starting servers")
 	go virtualftp.StartFTP(server.library, server.settings)
 	server.StartHTTP()
 
