@@ -25,9 +25,8 @@ const (
 func ParseXCIToMetaData(keystore *keystore.Keystore, settings *settings.Settings, reader io.ReaderAt) (FileInfo, error) {
 	info := FileInfo{}
 	header := make([]byte, XCIHeaderSize)
-	_, err := reader.ReadAt(header, 0)
-	if err != nil {
-		return info, err
+	if _, err := reader.ReadAt(header, 0); err != nil {
+		return info, fmt.Errorf("reading XCI header failed %w", err)
 	}
 	XCIHeaderString := string(header[XCIHeaderMagicStringOffset : XCIHeaderMagicStringOffset+4])
 	if XCIHeaderString != "HEAD" {
@@ -35,7 +34,6 @@ func ParseXCIToMetaData(keystore *keystore.Keystore, settings *settings.Settings
 	}
 
 	rootPartitionOffset := binary.LittleEndian.Uint64(header[XCIRootPartionHeaderOffset : XCIRootPartionHeaderOffset+8])
-
 	rootHfs0, err := partitionfs.ReadSection(reader, int64(rootPartitionOffset))
 	if err != nil {
 		return info, fmt.Errorf("reading XCI PartionFS failed with - %w", err)
@@ -83,7 +81,6 @@ func ParseXCIToMetaData(keystore *keystore.Keystore, settings *settings.Settings
 			info.TitleID = currCnmt.TitleId
 			info.Version = currCnmt.Version
 			info.Type = currCnmt.Type
-
 		}
 	}
 	return info, nil

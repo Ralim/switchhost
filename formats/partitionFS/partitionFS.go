@@ -46,11 +46,12 @@ func ReadSection(reader io.ReaderAt, offset int64) (*PartionFS, error) {
 	}
 	headerMagic := string(header[0:0x04])
 	fileEntryTableSize := 0
-	if headerMagic == PFS0Magic {
+	switch headerMagic {
+	case PFS0Magic:
 		fileEntryTableSize = PFSfileEntryTableSize
-	} else if headerMagic == HFS0Magic {
+	case HFS0Magic:
 		fileEntryTableSize = HFSfileEntryTableSize
-	} else {
+	default:
 		return nil, fmt.Errorf("invalid filesystem magic. Wanted %s/%s, got >%s<", PFS0Magic, HFS0Magic, headerMagic)
 	}
 

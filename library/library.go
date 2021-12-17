@@ -82,8 +82,12 @@ func (lib *Library) Start() error {
 	go lib.fileScanningWorker()
 	go lib.RunScan()
 	go lib.cleanupFolderWorker()
-	go lib.fileWatcher.Start(time.Minute)
+	go func() {
+		if err := lib.fileWatcher.Start(time.Minute); err != nil {
+			log.Warn().Err(err).Msg("File watcher could not start")
+		}
 
+	}()
 	//Trivial map fro mwatcher into the pendings list
 	go func() {
 		for change := range lib.fileWatcher.Event {

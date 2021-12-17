@@ -38,7 +38,7 @@ func ReadHeader(data []byte) (*Header, error) {
 	if len(data) < 8*10 {
 		return nil, fmt.Errorf("IStorage length too short %d", len(data))
 	}
-	//Read out the array of uint64 values
+	// Read out the array of uint64 values
 	values := make([]uint64, 10)
 	for i := 0; i < 10; i++ {
 		values[i] = binary.LittleEndian.Uint64(data[(8 * i):(8 * (i + 1))])
@@ -59,8 +59,7 @@ func ReadHeader(data []byte) (*Header, error) {
 	return header, nil
 }
 
-//ReadFileEntries Will return all of the Fileentry records contained in the data
-
+// ReadFileEntries Will return all of the Fileentry records contained in the data
 func ReadFileEntries(data []byte, header Header) (map[string]FileEntry, error) {
 	if header.FileMetaTableOffset+header.FileMetaTableSize > uint64(len(data)) {
 		return nil, errors.New("data too small / bad header")

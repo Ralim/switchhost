@@ -25,7 +25,7 @@ const (
 
 type ContentType int
 
-//MetaType is the main type of the conents, so base game, updates, dlc etc
+// MetaType is the main type of the contents, so base game, updates, dlc etc
 type MetaType int
 
 const (

@@ -3,10 +3,10 @@ package webui
 import (
 	"errors"
 
+	_ "embed"
+
 	"github.com/ralim/switchhost/library"
 	"github.com/ralim/switchhost/titledb"
-
-	_ "embed"
 )
 
 //go:embed templates/index.html

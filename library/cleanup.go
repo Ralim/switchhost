@@ -5,9 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/ralim/switchhost/utilities"
+	"github.com/rs/zerolog/log"
 )
 
 // Cleanup is notified anytime a folder has a file removed from it, which causes the parent search folder for that file to be scanned to remove empty folders
