@@ -130,7 +130,7 @@ func (lib *Library) getFileInfo(sourceFile string) (*formats.FileInfo, error) {
 		return nil, fmt.Errorf("could not determine sorted path for %s due to error %w during file parsing", sourceFile, err)
 	}
 	if len(info.EmbeddedTitle) == 0 && info.Type != cnmt.DLC {
-		log.Info().Msgf("Parsing embedded title failed for file %s", sourceFile)
+		log.Warn().Msgf("Parsing embedded title failed for file %s", sourceFile)
 	}
 	fileStat, err := file.Stat()
 	if err == nil {

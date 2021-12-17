@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	stdlog "log"
 	"os"
 
 	"github.com/rs/zerolog"
@@ -23,9 +24,10 @@ type Settings struct {
 	CleanupEmptyFolders bool     `json:"cleanupEmptyFolders"`    // Should we cleanup empty folders in the search and storage paths
 	ServerMOTD          string   `json:"serverMOTD"`             // Server title used for public facing info
 	LogLevel            int      `json:"logLevel"`               // Log level, higher numbers reduce log output
-	LogFile             string   `json:"logPath"`                // Path to persist logs to, if empty none are persisted
+	LogFilePath         string   `json:"logPath"`                // Path to persist logs to, if empty none are persisted
 	// Private
 	filePath string
+	logFile  *os.File
 }
 
 // NewSettings creates settings with sane defaults
@@ -44,7 +46,7 @@ func NewSettings(path string) *Settings {
 		FTPPort:             2121,
 		ServerMOTD:          "Switchroot",
 		LogLevel:            1,  //Info
-		LogFile:             "", // No log file
+		LogFilePath:         "", // No log file
 		OrganisationFormat:  "{TitleName}/{TitleName} {Type} {VersionDec} [{TitleID}][{Version}]",
 		TitlesDBURLs: []string{
 			// "https://tinfoil.media/repo/db/titles.json",
@@ -94,4 +96,25 @@ func (s *Settings) GetAllScanFolders() []string {
 func (s *Settings) setupLogging() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.SetGlobalLevel(zerolog.Level(s.LogLevel))
+	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
+	if len(s.LogFilePath) > 0 {
+		//Setup a mirror of the log to the specified file
+		logfile, err := os.OpenFile(s.LogFilePath, os.O_APPEND, 0666)
+		if err == nil {
+
+			s.logFile = logfile
+
+			multi := zerolog.MultiLevelWriter(consoleWriter, s.logFile)
+
+			logger := zerolog.New(multi).With().Timestamp().Logger()
+			stdlog.SetOutput(logger)
+			return
+		} else {
+			log.Warn().Msgf("Couldn't open log file %s for writing - %v", s.LogFilePath, err)
+		}
+	}
+	//otherwise if we are here, just setup nice console logging
+	stdlog.SetOutput(consoleWriter)
+	log.Logger = log.Output(consoleWriter)
+
 }
