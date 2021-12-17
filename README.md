@@ -31,7 +31,7 @@ Most likely changes are to do with file pathing in served files and cleaning up.
 
 Having a prod.keys file will allow you to ensure the files you have a correctly classified. The app will look for the `prod.keys` file in `${HOME}/.switch/`
 If keys are missing some features (sorting) will not function as of present
-Note: Only the header_key, and the key_area_key_application_XX keys are required.
+Note: Only the header_key, and the key_area_key_application_XX keys are required; if you dont have these you will need to dump them from your switch.
 
 ## Structure
 

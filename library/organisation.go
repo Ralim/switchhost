@@ -166,6 +166,7 @@ func (lib *Library) determineIdealFilePath(info *formats.FileInfo, sourceFile st
 		outputName = strings.ReplaceAll(outputName, FormatNameSub, gameTitle)
 	}
 	extension := filepath.Ext(sourceFile)
+	extension = strings.ToLower(extension)
 	outputName += extension
 	outputName = path.Join(lib.settings.StorageFolder, outputName)
 	outputName, err := filepath.Abs(outputName)
