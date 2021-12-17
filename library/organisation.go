@@ -163,6 +163,7 @@ func (lib *Library) determineIdealFilePath(info *formats.FileInfo, sourceFile st
 				return "", fmt.Errorf("unable to determine path as title lookup failed with - >%w< and the embedded Title was empty", err)
 			}
 		}
+		gameTitle = utilities.CleanName(gameTitle)
 		outputName = strings.ReplaceAll(outputName, FormatNameSub, gameTitle)
 	}
 	extension := filepath.Ext(sourceFile)

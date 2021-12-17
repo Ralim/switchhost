@@ -54,6 +54,6 @@ func recursivelyCheckForEmptyFolders(pathin string) {
 			return nil
 		})
 	if err != nil {
-		log.Warn().Msgf("Cant clean folder %s due to error %v", pathin, err)
+		log.Debug().Err(err).Str("path", pathin).Msg("Cant clean folder")
 	}
 }
