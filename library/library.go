@@ -15,8 +15,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Library manages the representation of the game files on disk + their metadata
+type scanRequest struct {
+	path             string
+	isEndOfStartScan bool
+	isNotifierBased  bool
+}
 
+// Library manages the representation of the game files on disk + their metadata
 type Library struct {
 	//Privates
 	keys       *keystore.Keystore
@@ -25,7 +30,7 @@ type Library struct {
 	//Organisation
 	titledb *titledb.TitlesDB
 
-	fileScanRequests      chan string
+	fileScanRequests      chan *scanRequest
 	folderCleanupRequests chan string
 	fileWatcher           *watcher.Watcher
 }
@@ -33,7 +38,7 @@ type Library struct {
 func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings) *Library {
 	library := &Library{
 
-		fileScanRequests:      make(chan string, 128),
+		fileScanRequests:      make(chan *scanRequest, 32),
 		folderCleanupRequests: make(chan string, 128),
 		titledb:               titledb,
 		settings:              settings,
@@ -82,7 +87,12 @@ func (lib *Library) Start() error {
 	//Trivial map fro mwatcher into the pendings list
 	go func() {
 		for change := range lib.fileWatcher.Event {
-			lib.fileScanRequests <- change.Path
+			event := &scanRequest{
+				path:             change.Path,
+				isEndOfStartScan: false,
+				isNotifierBased:  true,
+			}
+			lib.fileScanRequests <- event
 		}
 	}()
 	return nil
@@ -100,6 +110,13 @@ func (lib *Library) RunScan() {
 		}
 
 	}
+	//end marker to allow indication to users that scan is done
+	event := &scanRequest{
+		path:             "",
+		isEndOfStartScan: true,
+		isNotifierBased:  false,
+	}
+	lib.fileScanRequests <- event
 }
 
 //ScanFolder recursively scans the provied folder and feeds it to the organisation queue
@@ -125,7 +142,12 @@ func (lib *Library) ScanFolder(path string) error {
 				if shouldScan {
 					//This is a file, so push it to the queue
 					log.Debug().Msgf("File scan requested for %s", path)
-					lib.fileScanRequests <- path
+					event := &scanRequest{
+						path:             path,
+						isEndOfStartScan: false,
+						isNotifierBased:  false,
+					}
+					lib.fileScanRequests <- event
 				}
 			}
 		}

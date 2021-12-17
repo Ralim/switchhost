@@ -32,33 +32,38 @@ func (lib *Library) fileScanningWorker() {
 	// 3. Update our in ram db to the file existance :)
 	// 4. If the containing folder is now empty, remove it
 
-	for requestedPath := range lib.fileScanRequests {
-		if requestedPath, err := filepath.Abs(requestedPath); err == nil {
-			//For now limited to having to use keys to read files, TODO: Regex the deets out of the file name
-			if lib.keys != nil {
-				log.Debug().Msgf("Starting requested scan of %s", requestedPath)
-				info, err := lib.getFileInfo(requestedPath)
-				if err != nil {
-					log.Warn().Msgf("could not determine sorted path for %s due to error %v during file parsing", requestedPath, err)
-				} else {
-					fileResultingPath := lib.sortFileIfApplicable(info, requestedPath)
+	for event := range lib.fileScanRequests {
+		if event.isEndOfStartScan {
+			log.Info().Msg("Inital startup scan is complete")
+		} else {
+			log.Debug().Str("path", event.path).Bool("isNotifier", event.isNotifierBased).Msg("Scan request")
+			if requestedPath, err := filepath.Abs(event.path); err == nil {
+				//For now limited to having to use keys to read files, TODO: Regex the deets out of the file name
+				if lib.keys != nil {
+					log.Debug().Msgf("Starting requested scan of %s", requestedPath)
+					info, err := lib.getFileInfo(requestedPath)
+					if err != nil {
+						log.Warn().Msgf("could not determine sorted path for %s due to error %v during file parsing", requestedPath, err)
+					} else {
+						fileResultingPath := lib.sortFileIfApplicable(info, requestedPath)
 
-					//Add to our repo, moved or not
-					record := &FileOnDiskRecord{
-						Path:    fileResultingPath,
-						TitleID: info.TitleID,
-						Version: info.Version,
-						Name:    info.EmbeddedTitle,
-						Size:    info.Size,
-					}
-					gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID)
-					if err == nil {
-						record.Name = gameTitle
-					}
+						//Add to our repo, moved or not
+						record := &FileOnDiskRecord{
+							Path:    fileResultingPath,
+							TitleID: info.TitleID,
+							Version: info.Version,
+							Name:    info.EmbeddedTitle,
+							Size:    info.Size,
+						}
+						gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID)
+						if err == nil {
+							record.Name = gameTitle
+						}
 
-					lib.AddFileRecord(record)
+						lib.AddFileRecord(record)
+					}
+					log.Debug().Msgf("Finished scan of %s", requestedPath)
 				}
-				log.Debug().Msgf("Finished scan of %s", requestedPath)
 			}
 		}
 	}
