@@ -14,6 +14,8 @@ import (
 	"github.com/ralim/switchhost/utilities"
 )
 
+var ErrInvalidPath error = errors.New("invalid path")
+
 // Since we dont want to expose the file system to users, we provide virtual paths for all known tracked files
 
 // Since all tracked files (should) have a unique TitleID/Version, this is used to generate the virtual path to the file
@@ -36,16 +38,16 @@ func (server *Server) GenerateVirtualFilePath(file library.FileOnDiskRecord, hos
 func (server *Server) LookupVirtualFilePath(path string) (uint64, uint32, error) {
 	splits := strings.Split(path, "/")
 	if len(splits) != 4 {
-		return 0, 0, errors.New("invalid path")
+		return 0, 0, ErrInvalidPath
 	}
 	//Split out the two numbers
 	titleID, err := strconv.ParseUint(splits[1], 10, 64)
 	if err != nil {
-		return 0, 0, errors.New("invalid path")
+		return 0, 0, ErrInvalidPath
 	}
 	version, err := strconv.ParseUint(splits[2], 10, 32)
 	if err != nil {
-		return 0, 0, errors.New("invalid path")
+		return 0, 0, ErrInvalidPath
 	}
 	return titleID, uint32(version), nil
 }

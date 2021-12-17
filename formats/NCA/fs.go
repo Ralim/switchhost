@@ -34,7 +34,7 @@ const (
 	PFS0EntrySize    = 0x10
 )
 
-func GetFSEntry(ncaHeader *NCAHeader, index int) FSEntry {
+func GetFSEntry(ncaHeader *Header, index int) FSEntry {
 	fsEntryOffset := PFS0EntryOffset + PFS0EntrySize*index
 	fsEntryBytes := ncaHeader.HeaderBytes[fsEntryOffset : fsEntryOffset+PFS0EntrySize]
 
@@ -44,7 +44,7 @@ func GetFSEntry(ncaHeader *NCAHeader, index int) FSEntry {
 	return FSEntry{StartOffset: entryStartOffset, EndOffset: entryEndOffset, Size: entryEndOffset - entryStartOffset}
 }
 
-func GetFSHeader(ncaHeader *NCAHeader, index int) (*FSHeader, error) {
+func GetFSHeader(ncaHeader *Header, index int) (*FSHeader, error) {
 	fsHeaderHashOffset := PFS0HeaderOffset + PFS0HashSize*index
 	fsHeaderHash := ncaHeader.HeaderBytes[fsHeaderHashOffset : fsHeaderHashOffset+0x20]
 

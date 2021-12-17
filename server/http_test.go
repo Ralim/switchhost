@@ -28,8 +28,11 @@ func maketestServer(t *testing.T) (*Server, *library.Library, string) {
 }
 
 func TestHTTPServerbasics(t *testing.T) {
+	t.Parallel()
+
 	server, lib, temp_folder := maketestServer(t)
 	defer os.RemoveAll(temp_folder)
+
 	//Now we can fake poke server handlers
 	tempBuffer := bytes.NewBuffer([]byte{})
 
@@ -62,6 +65,8 @@ func TestHTTPServerbasics(t *testing.T) {
 }
 
 func TestHTTPFileServingJSON(t *testing.T) {
+	t.Parallel()
+
 	server, _, temp_folder := maketestServer(t)
 	defer os.RemoveAll(temp_folder)
 
@@ -95,6 +100,8 @@ func TestHTTPFileServingJSON(t *testing.T) {
 }
 
 func TestHTTPFileServingBinary(t *testing.T) {
+	t.Parallel()
+
 	server, lib, temp_folder := maketestServer(t)
 	defer os.RemoveAll(temp_folder)
 
@@ -112,28 +119,29 @@ func TestHTTPFileServingBinary(t *testing.T) {
 	}
 
 	// We create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response.
-	rr := httptest.NewRecorder()
+	requestRecorder := httptest.NewRecorder()
 	handler := http.HandlerFunc(server.httpHandlevFile)
 
 	// Our handlers satisfy http.Handler, so we can call their ServeHTTP method
 	// directly and pass in our Request and ResponseRecorder.
-	handler.ServeHTTP(rr, req)
+	handler.ServeHTTP(requestRecorder, req)
 
 	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
+	if status := requestRecorder.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)
 	}
 
 	// Check the response body is what we expect.
 	expectedLength := 589016
-	if rr.Body.Len() != expectedLength {
+	if requestRecorder.Body.Len() != expectedLength {
 		t.Errorf("handler returned unexpected body: got %d bytes want %d bytes",
-			rr.Body.Len(), expectedLength)
+			requestRecorder.Body.Len(), expectedLength)
 	}
 }
 
 func TestHTTPFileServingBinaryRangeBytes(t *testing.T) {
+	t.Parallel()
 	server, lib, temp_folder := maketestServer(t)
 	defer os.RemoveAll(temp_folder)
 

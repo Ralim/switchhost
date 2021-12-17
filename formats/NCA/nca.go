@@ -29,11 +29,11 @@ const (
 	NCAContentData       = 4
 	NCAContentPublicData = 5
 	// Format consts
-	NCAHeaderLength = 0xC00
-	NCASectorSize   = 0x200
+	HeaderLength  = 0xC00
+	NCASectorSize = 0x200
 )
 
-type NCAHeader struct {
+type Header struct {
 	HeaderBytes    []byte // Raw Decrypted header
 	RightsID       []byte // rights id [ 0x10]
 	ProgramID      uint64 // programID of the file
@@ -45,7 +45,7 @@ type NCAHeader struct {
 	CryptoType     byte
 }
 
-func DecryptMetaNCADataSection(keystore *keystore.Keystore, reader io.ReaderAt, header *NCAHeader, ncaOffset uint64) ([]byte, error) {
+func DecryptMetaNCADataSection(keystore *keystore.Keystore, reader io.ReaderAt, header *Header, ncaOffset uint64) ([]byte, error) {
 
 	dataSectionIndex := 0
 
@@ -82,13 +82,13 @@ func DecryptMetaNCADataSection(keystore *keystore.Keystore, reader io.ReaderAt, 
 	return decoded[hashInfo.PFS0HeaderOffset:], nil
 }
 
-func ParseNCAEncryptedHeader(keystore *keystore.Keystore, reader io.ReaderAt, ncaOffset uint64) (*NCAHeader, error) {
+func ParseNCAEncryptedHeader(keystore *keystore.Keystore, reader io.ReaderAt, ncaOffset uint64) (*Header, error) {
 	// Validate we have the required header key for parsing
 	headerKey, err := keystore.GetHeaderKey()
 	if err != nil {
 		return nil, errors.New("cant decode NCA data without `header_key`")
 	}
-	encryptedNCADataBlock := make([]byte, NCAHeaderLength)
+	encryptedNCADataBlock := make([]byte, HeaderLength)
 	_, err = reader.ReadAt(encryptedNCADataBlock, int64(ncaOffset))
 
 	if err != nil {
@@ -103,7 +103,7 @@ func ParseNCAEncryptedHeader(keystore *keystore.Keystore, reader io.ReaderAt, nc
 
 }
 
-func decryptNcaHeader(headerKey, encHeader []byte) (*NCAHeader, error) {
+func decryptNcaHeader(headerKey, encHeader []byte) (*Header, error) {
 
 	c, err := xts.NewCipher(aes.NewCipher, headerKey)
 
@@ -112,7 +112,7 @@ func decryptNcaHeader(headerKey, encHeader []byte) (*NCAHeader, error) {
 	}
 
 	length := 0x400
-	decryptedHeader, err := decryptNCAHeaderBlock(c, encHeader, length, NCASectorSize, 0)
+	decryptedHeader, err := decryptHeaderBlock(c, encHeader, length, NCASectorSize, 0)
 	if err != nil {
 		return nil, fmt.Errorf("inital NCA(1/2) decryption failed - %w", err)
 	}
@@ -124,13 +124,13 @@ func decryptNcaHeader(headerKey, encHeader []byte) (*NCAHeader, error) {
 
 	if magic == "NCA3" {
 		length = 0xC00
-		decryptedHeader, err = decryptNCAHeaderBlock(c, encHeader, length, NCASectorSize, 0)
+		decryptedHeader, err = decryptHeaderBlock(c, encHeader, length, NCASectorSize, 0)
 		if err != nil {
 			return nil, fmt.Errorf("secondary NCA(3) decryption failed - %w", err)
 		}
 	}
 
-	result := NCAHeader{HeaderBytes: decryptedHeader}
+	result := Header{HeaderBytes: decryptedHeader}
 
 	result.Distribution = decryptedHeader[0x204]
 	result.ContentType = decryptedHeader[0x205]
@@ -147,7 +147,7 @@ func decryptNcaHeader(headerKey, encHeader []byte) (*NCAHeader, error) {
 	return &result, nil
 }
 
-func decryptNCAHeaderBlock(c *xts.Cipher, header []byte, length, sectorSize, sectorNum int) ([]byte, error) {
+func decryptHeaderBlock(c *xts.Cipher, header []byte, length, sectorSize, sectorNum int) ([]byte, error) {
 	decrypted := make([]byte, len(header))
 	for pos := 0; pos < length; pos += sectorSize {
 		pos := sectorSize * sectorNum
@@ -157,7 +157,7 @@ func decryptNCAHeaderBlock(c *xts.Cipher, header []byte, length, sectorSize, sec
 	return decrypted, nil
 }
 
-func (n *NCAHeader) getKeyRevision() int {
+func (n *Header) getKeyRevision() int {
 	keyGeneration := int(math.Max(float64(n.KeyGeneration1), float64(n.KeyGeneration2)))
 	keyRevision := keyGeneration - 1
 	if keyGeneration == 0 {
@@ -166,7 +166,7 @@ func (n *NCAHeader) getKeyRevision() int {
 	return int(keyRevision)
 }
 
-func decryptAesCtr(keystore *keystore.Keystore, ncaHeader *NCAHeader, fsHeader *FSHeader, offset uint32, size uint32, encoded []byte) ([]byte, error) {
+func decryptAesCtr(keystore *keystore.Keystore, ncaHeader *Header, fsHeader *FSHeader, offset uint32, size uint32, encoded []byte) ([]byte, error) {
 	keyRevision := ncaHeader.getKeyRevision()
 	cryptoType := ncaHeader.CryptoType
 

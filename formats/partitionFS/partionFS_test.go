@@ -57,7 +57,7 @@ var ExampleFileHeaderKnownGood []uint8 = []uint8{
 
 func TestParsePFS0KnownGood(t *testing.T) {
 
-	header, err := ReadSection(bytes.NewReader(ExampleFileHeaderKnownGood[:]), 0)
+	header, err := ReadSection(bytes.NewReader(ExampleFileHeaderKnownGood), 0)
 
 	if err != nil {
 		t.Errorf("Should parse example header details without error %v", err)
@@ -81,7 +81,7 @@ func TestParsePFS0FailurePaths(t *testing.T) {
 		0x50, 0x46, 0x53, 0x30, 0x08, 0x00, 0x00, 0x00, 0x40, 0x01, 0x00, 0x00,
 	}
 
-	_, err := ReadSection(bytes.NewReader(ExampleFileHeader[:]), 4096)
+	_, err := ReadSection(bytes.NewReader(ExampleFileHeader), 4096)
 	if err == nil {
 		t.Error("should fail out of bounds")
 	}
@@ -90,7 +90,7 @@ func TestParsePFS0FailurePaths(t *testing.T) {
 		0x50, 0x45, 0x53, 0x30, 0x08, 0x00, 0x00, 0x00, 0x40, 0x01, 0x00, 0x00,
 	}
 
-	_, err = ReadSection(bytes.NewReader(ExampleFileHeader[:]), 0)
+	_, err = ReadSection(bytes.NewReader(ExampleFileHeader), 0)
 	if err == nil {
 		t.Error("should fail out of bounds")
 	}

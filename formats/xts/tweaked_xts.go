@@ -4,7 +4,8 @@
 
 /// Modified xts to support custom tweak
 
-// This was inspired by the modifications here: https://raw.githubusercontent.com/giwty/switch-library-manager/master/switchfs/_crypto/xts.go
+// This was inspired by the modifications here:
+// https://raw.githubusercontent.com/giwty/switch-library-manager/master/switchfs/_crypto/xts.go
 // As the hard work was already done, and updated to match newer golang xts and support encryption
 
 // Package xts implements the XTS cipher mode as specified in IEEE P1619/D16.
@@ -56,6 +57,7 @@ var tweakPool = sync.Pool{
 // twice the length of the underlying cipher's key.
 func NewCipher(cipherFunc func([]byte) (cipher.Block, error), key []byte) (c *Cipher, err error) {
 	c = new(Cipher)
+
 	if c.k1, err = cipherFunc(key[:len(key)/2]); err != nil {
 		return
 	}
@@ -94,7 +96,9 @@ func (c *Cipher) Encrypt(ciphertext, plaintext []byte, sectorNum uint64) {
 		for j := range tweak {
 			ciphertext[j] = plaintext[j] ^ tweak[j]
 		}
+
 		c.k1.Encrypt(ciphertext, ciphertext)
+
 		for j := range tweak {
 			ciphertext[j] ^= tweak[j]
 		}

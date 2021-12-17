@@ -88,18 +88,16 @@ func (driver *FTPDriver) ListDir(ctx *ftpserver.Context, path string, callback f
 		}
 	} else {
 		//Most likely a path to a folder of files
-		titleID, err := driver.dirPathToTitleID(path)
-		if err != nil {
-			return nil
-		}
-		val, ok := driver.library.GetFilesForTitleID(titleID)
-		if ok {
-			//Now need to yield os info's for all of the underlying files
-			for _, file := range val.GetFiles() {
-				info, err := os.Stat(file.Path)
-				if err == nil {
-					fakefile := NewFakeFile(driver.getfakepathForRealFile(file), info)
-					_ = callback(&fakefile)
+		if titleID, err := driver.dirPathToTitleID(path); err == nil {
+			val, ok := driver.library.GetFilesForTitleID(titleID)
+			if ok {
+				//Now need to yield os info's for all of the underlying files
+				for _, file := range val.GetFiles() {
+					info, err := os.Stat(file.Path)
+					if err == nil {
+						fakefile := NewFakeFile(driver.getfakepathForRealFile(file), info)
+						_ = callback(&fakefile)
+					}
 				}
 			}
 		}

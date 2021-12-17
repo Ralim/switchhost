@@ -6,7 +6,7 @@ import (
 
 func TestGetFsEntry(t *testing.T) {
 	t.Parallel()
-	header := &NCAHeader{
+	header := &Header{
 		HeaderBytes: make([]byte, 0x240+0x10),
 	}
 	//Append in the data that is read out

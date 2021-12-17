@@ -21,8 +21,7 @@ func main() {
 	Titles.UpdateTitlesDB()
 	lib := library.NewLibrary(Titles, settings)
 	tryAndLoadKeys(lib)
-	err := lib.Start()
-	if err != nil {
+	if err := lib.Start(); err != nil {
 		panic(err)
 	}
 
