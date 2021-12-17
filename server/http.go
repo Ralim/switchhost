@@ -4,20 +4,49 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/justinas/alice"
 	"github.com/ralim/switchhost/webui"
+	"github.com/rs/zerolog/hlog"
+	"github.com/rs/zerolog/log"
 )
 
 var ErrInvalidHeader = errors.New("invalid request header")
 
 func (server *Server) StartHTTP() {
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", server.settings.HTTPPort), server))
+	c := alice.New()
+
+	// Install the logger handler with default output on the console
+	c = c.Append(hlog.NewHandler(log.Logger))
+
+	// Install some provided extra handler to set some request's context fields.
+	// Thanks to that handler, all our logs will come with some prepopulated fields.
+	c = c.Append(hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
+		hlog.FromRequest(r).Info().
+			Str("method", r.Method).
+			Stringer("url", r.URL).
+			Int("status", status).
+			Int("size", size).
+			Dur("duration", duration).
+			Msg("")
+	}))
+	c = c.Append(hlog.RemoteAddrHandler("ip"))
+	c = c.Append(hlog.UserAgentHandler("user_agent"))
+	c = c.Append(hlog.RefererHandler("referer"))
+
+	// Here is your final handleS
+	h := c.Then(server)
+	http.Handle("/", h)
+
+	if err := (http.ListenAndServe(fmt.Sprintf(":%d", server.settings.HTTPPort), nil)); err != nil {
+		log.Fatal().Err(err).Msg("Startup failed")
+	}
 }
 
 func (server *Server) httpHandleJSON(respWriter http.ResponseWriter, r *http.Request) {
