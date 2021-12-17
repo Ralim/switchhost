@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ralim/switchhost/keystore"
 	"github.com/ralim/switchhost/settings"
@@ -89,9 +90,25 @@ func (lib *Library) ScanFolder(path string) error {
 		if err == nil {
 
 			if !info.IsDir() {
-				//This is a file, so push it to the queue
-				log.Debug().Msgf("File scan requested for %s\r\n", path)
-				lib.fileScanRequests <- path
+
+				ext := filepath.Ext(path)
+				ext = strings.ToUpper(ext)
+				shouldScan := false
+				switch ext {
+				case ".NSP":
+					shouldScan = true
+				case ".NSZ":
+					shouldScan = true
+				case ".XCI":
+					shouldScan = true
+				case ".XCZ":
+					shouldScan = true
+				}
+				if shouldScan {
+					//This is a file, so push it to the queue
+					log.Debug().Msgf("File scan requested for %s\r\n", path)
+					lib.fileScanRequests <- path
+				}
 			}
 		}
 		return nil
