@@ -96,25 +96,27 @@ func (s *Settings) GetAllScanFolders() []string {
 func (s *Settings) setupLogging() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.SetGlobalLevel(zerolog.Level(s.LogLevel))
-	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
-	if len(s.LogFilePath) > 0 {
-		//Setup a mirror of the log to the specified file
-		logfile, err := os.OpenFile(s.LogFilePath, os.O_APPEND, 0666)
-		if err == nil {
-
-			s.logFile = logfile
-
-			multi := zerolog.MultiLevelWriter(consoleWriter, s.logFile)
-
-			logger := zerolog.New(multi).With().Timestamp().Logger()
-			stdlog.SetOutput(logger)
-			return
-		} else {
-			log.Warn().Msgf("Couldn't open log file %s for writing - %v", s.LogFilePath, err)
-		}
+	consoleWriter := zerolog.ConsoleWriter{
+		Out:        os.Stdout,
+		TimeFormat: zerolog.TimeFormatUnix,
 	}
-	//otherwise if we are here, just setup nice console logging
 	stdlog.SetOutput(consoleWriter)
 	log.Logger = log.Output(consoleWriter)
 
+	if len(s.LogFilePath) > 0 {
+		//Setup a mirror of the log to the specified file
+		logfile, err := os.OpenFile(s.LogFilePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
+		if err != nil {
+			log.Warn().Msgf("Couldn't open log file %s for writing - %v", s.LogFilePath, err)
+			return
+		}
+		s.logFile = logfile
+
+		multi := zerolog.MultiLevelWriter(consoleWriter, s.logFile)
+
+		stdlog.SetOutput(multi)
+		log.Logger = log.Output(multi)
+		log.Info().Msg("Started logging to file")
+
+	}
 }
