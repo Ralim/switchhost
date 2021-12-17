@@ -26,7 +26,6 @@ Most likely changes are to do with file pathing in served files and cleaning up.
 1. More detailed web-ui
 1. Add ability to compress files to NSZ/XCZ
 1. Empty folder cleanup needs rework, its rather messy at the moment
-1. Setup watch of incoming folder
 
 ## Keys (optional)
 

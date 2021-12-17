@@ -46,7 +46,7 @@ func recursivelyCheckForEmptyFolders(pathin string) {
 				if info.IsDir() {
 					recursivelyCheckForEmptyFolders(path)
 					if empty, err := utilities.IsEmpty(path); err == nil && empty {
-						log.Info().Msgf("Removing %s as its empty\n", path)
+						log.Info().Msgf("Removing %s as its empty", path)
 						os.Remove(path)
 					}
 				}

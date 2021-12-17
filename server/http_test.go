@@ -55,7 +55,7 @@ func TestHTTPServerbasics(t *testing.T) {
 	}
 	response = tempBuffer.String()
 
-	if response != `{"files":[],"directories":null,"success":"SwitchRoooooot","titledb":{}}{"files":[{"url":"http://test/vfile/365418291444842496/0/data.bin#UnitTest [05123A0000000000][v0].nsp","size":1,"title":"UnitTest"}],"directories":null,"success":"SwitchRoooooot","titledb":{}}` {
+	if response != `{"files":[],"directories":null,"success":"SwitchRoooooot","titledb":{}}{"files":[{"url":"http://test/vfile/365418291444842496/0/data.bin#UnitTest [05123A0000000000][v0].nsp","size":0,"title":"UnitTest"}],"directories":null,"success":"SwitchRoooooot","titledb":{}}` {
 		t.Errorf("response doesnt match expected >%s<", response)
 	}
 

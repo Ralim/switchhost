@@ -33,7 +33,7 @@ func DownloadFileWithVersioning(fileURL, folder string) (string, error) {
 	response, err := client.Do(req)
 
 	if err != nil {
-		log.Warn().Msgf("Request for file %s failed with %v, continuing anyway\n", fileURL, err)
+		log.Warn().Msgf("Request for file %s failed with %v, continuing anyway", fileURL, err)
 	}
 	if response.StatusCode == 304 {
 		//Not modified, no-op
@@ -46,7 +46,7 @@ func DownloadFileWithVersioning(fileURL, folder string) (string, error) {
 	err = os.WriteFile(outputETagFile, []byte(etag), 0666)
 	//We dont bubble up etag errors as non-essential
 	if err != nil {
-		log.Warn().Msgf("Saving ETag for file %s failed with %v, continuing anyway\n", fileURL, err)
+		log.Warn().Msgf("Saving ETag for file %s failed with %v, continuing anyway", fileURL, err)
 	}
 
 	//Create output file, truncates existing

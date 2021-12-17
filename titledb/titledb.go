@@ -58,7 +58,7 @@ func CreateTitlesDB(settings *settings.Settings) *TitlesDB {
 }
 
 // UpdateTitlesDB will sync latest titlesdb, then update the internal memory state
-func (db *TitlesDB) UpdateTitlesDB() error {
+func (db *TitlesDB) UpdateTitlesDB() {
 	_ = os.MkdirAll(db.settings.CacheFolder, 0755)
 
 	// Download the latest titlesdb to the current folder
@@ -68,12 +68,11 @@ func (db *TitlesDB) UpdateTitlesDB() error {
 			log.Warn().Msgf("Downloading latest TitlesDB failed, will continue using cached - %v", err)
 		}
 		if err := db.injestTitleDBFile(path); err != nil {
-			return fmt.Errorf("failed to update titleDB due to err during parsing - %w", err)
+			log.Error().Err(err).Str("url", fileURL).Msg("TitleDB couldn't parse downloaded data")
 		} else {
-			log.Info().Msgf("Loaded TitleDB %s\n", fileURL)
+			log.Info().Str("url", fileURL).Msg("Loaded TitleDB")
 		}
 	}
-	return nil
 }
 
 func (db *TitlesDB) injestTitleDBFile(path string) error {
@@ -87,7 +86,7 @@ func (db *TitlesDB) injestTitleDBFile(path string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse the Titledb - %w", err)
 	}
-	log.Info().Msgf("Loading %d entries from %s\n", len(entries), path)
+	log.Info().Msgf("Loading %d entries from %s", len(entries), path)
 	//Have to insert all entries into the map with update
 	db.entriesLock.Lock()
 	defer db.entriesLock.Unlock()

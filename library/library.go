@@ -6,7 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/radovskyb/watcher"
 	"github.com/ralim/switchhost/keystore"
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/titledb"
@@ -25,6 +27,7 @@ type Library struct {
 
 	fileScanRequests      chan string
 	folderCleanupRequests chan string
+	fileWatcher           *watcher.Watcher
 }
 
 func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings) *Library {
@@ -35,8 +38,10 @@ func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings) *Library
 		titledb:               titledb,
 		settings:              settings,
 		filesKnown:            make(map[uint64]TitleOnDiskCollection),
+		fileWatcher:           watcher.New(),
 	}
 
+	library.fileWatcher.FilterOps(watcher.Create)
 	return library
 
 }
@@ -61,7 +66,7 @@ func (lib *Library) Start() error {
 	if lib.settings.EnableSorting {
 		if _, err := os.Stat(lib.settings.StorageFolder); os.IsNotExist(err) {
 			if err := os.Mkdir(lib.settings.StorageFolder, 0755); err != nil {
-				fmt.Fprintf(os.Stderr, "Couldn't create storage folder. Sorting will fail, so disabling\n")
+				fmt.Fprintf(os.Stderr, "Couldn't create storage folder. Sorting will fail, so disabling")
 				lib.settings.EnableSorting = false
 				lib.settings.Save()
 			}
@@ -72,6 +77,14 @@ func (lib *Library) Start() error {
 	go lib.fileScanningWorker()
 	go lib.RunScan()
 	go lib.cleanupFolderWorker()
+	go lib.fileWatcher.Start(time.Minute)
+
+	//Trivial map fro mwatcher into the pendings list
+	go func() {
+		for change := range lib.fileWatcher.Event {
+			lib.fileScanRequests <- change.Path
+		}
+	}()
 	return nil
 }
 
@@ -81,6 +94,11 @@ func (lib *Library) RunScan() {
 		if err := lib.ScanFolder(folder); err == nil {
 			lib.folderCleanupRequests <- folder
 		}
+		// Setup watch on folder for new files
+		if err := lib.fileWatcher.AddRecursive(folder); err != nil {
+			log.Error().Err(err).Msgf("Could not install watcher for folder %s", folder)
+		}
+
 	}
 }
 
@@ -106,7 +124,7 @@ func (lib *Library) ScanFolder(path string) error {
 				}
 				if shouldScan {
 					//This is a file, so push it to the queue
-					log.Debug().Msgf("File scan requested for %s\r\n", path)
+					log.Debug().Msgf("File scan requested for %s", path)
 					lib.fileScanRequests <- path
 				}
 			}

@@ -34,30 +34,32 @@ func (lib *Library) fileScanningWorker() {
 
 	for requestedPath := range lib.fileScanRequests {
 		if requestedPath, err := filepath.Abs(requestedPath); err == nil {
+			//For now limited to having to use keys to read files, TODO: Regex the deets out of the file name
+			if lib.keys != nil {
+				log.Debug().Msgf("Starting requested scan of %s", requestedPath)
+				info, err := lib.getFileInfo(requestedPath)
+				if err != nil {
+					log.Warn().Msgf("could not determine sorted path for %s due to error %v during file parsing", requestedPath, err)
+				} else {
+					fileResultingPath := lib.sortFileIfApplicable(info, requestedPath)
 
-			log.Debug().Msgf("Starting requested scan of %s\r\n", requestedPath)
-			info, err := lib.getFileInfo(requestedPath)
-			if err != nil {
-				log.Warn().Msgf("could not determine sorted path for %s due to error %v during file parsing", requestedPath, err)
-			} else {
-				fileResultingPath := lib.sortFileIfApplicable(info, requestedPath)
+					//Add to our repo, moved or not
+					record := &FileOnDiskRecord{
+						Path:    fileResultingPath,
+						TitleID: info.TitleID,
+						Version: info.Version,
+						Name:    info.EmbeddedTitle,
+						Size:    info.Size,
+					}
+					gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID)
+					if err == nil {
+						record.Name = gameTitle
+					}
 
-				//Add to our repo, moved or not
-				record := &FileOnDiskRecord{
-					Path:    fileResultingPath,
-					TitleID: info.TitleID,
-					Version: info.Version,
-					Name:    info.EmbeddedTitle,
-					Size:    info.Size,
+					lib.AddFileRecord(record)
 				}
-				gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID)
-				if err == nil {
-					record.Name = gameTitle
-				}
-
-				lib.AddFileRecord(record)
+				log.Debug().Msgf("Finished scan of %s", requestedPath)
 			}
-			log.Debug().Msgf("Finished scan of %s\r\n", requestedPath)
 		}
 	}
 }
@@ -69,24 +71,24 @@ func (lib *Library) fileScanningWorker() {
 func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath string) string {
 
 	// If sorting is off, no-op
-	if !lib.settings.EnableSorting {
+	if !lib.settings.EnableSorting || lib.keys == nil {
 		return currentPath
 	}
 	newPath, err := lib.determineIdealFilePath(infoInfo, currentPath)
 	if err != nil {
-		log.Warn().Msgf("Cant sort file %s due to error %v\n", currentPath, err)
+		log.Warn().Msgf("Cant sort file %s due to error %v", currentPath, err)
 		return currentPath
 	}
 	if err == nil {
 		if newPath != currentPath {
-			log.Info().Msgf("Moving file %s to %s\n", currentPath, newPath)
+			log.Info().Msgf("Moving file %s to %s", currentPath, newPath)
 			err := os.MkdirAll(path.Dir(newPath), 0755)
 			if err != nil {
-				log.Warn().Msgf("Could not move %s to %s, due to err %v\n", currentPath, newPath, err)
+				log.Warn().Msgf("Could not move %s to %s, due to err %v", currentPath, newPath, err)
 			} else {
 				err = utilities.RenameFile(currentPath, newPath)
 				if err != nil {
-					log.Warn().Msgf("Could not move %s to %s, due to err %v\n", currentPath, newPath, err)
+					log.Warn().Msgf("Could not move %s to %s, due to err %v", currentPath, newPath, err)
 				} else {
 					log.Debug().Msgf("Done moving %s -> %s", currentPath, newPath)
 					//Push the folder to the cleanup path
