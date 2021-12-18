@@ -151,7 +151,7 @@ func (lib *Library) RunScan() {
 		}
 		// Setup watch on folder for new files
 		if err := lib.fileWatcher.AddRecursive(folder); err != nil {
-			log.Error().Err(err).Msgf("Could not install watcher for folder %s", folder)
+			log.Error().Err(err).Str("folder", folder).Msg("Could not install watcher")
 		}
 
 	}
@@ -186,7 +186,7 @@ func (lib *Library) ScanFolder(path string) error {
 				}
 				if shouldScan {
 					//This is a file, so push it to the queue
-					log.Debug().Msgf("File scan requested for %s", path)
+					log.Debug().Str("path", path).Msg("File scan requested")
 					event := &scanRequest{
 						path:             path,
 						isEndOfStartScan: false,

@@ -46,7 +46,7 @@ func tryAndLoadKeys(lib *library.Library) {
 func loadKeys(folder string, lib *library.Library) bool {
 	path := path.Join(folder, "prod.keys")
 	if _, err := os.Stat(path); err == nil {
-		log.Info().Msgf("Loading keys from %s", path)
+		log.Info().Str("path", path).Msg("Loading keys...")
 
 		file, err := os.Open(path)
 		if err != nil {

@@ -71,7 +71,7 @@ func ParseXCIToMetaData(keystore *keystore.Keystore, settings *settings.Settings
 			if currCnmt.Type != cnmt.DLC {
 				nacp, err := nacp.ExtractNACP(keystore, currCnmt, reader, secureHfs0, uint64(secureOffset))
 				if err != nil {
-					log.Warn().Msgf("Failed to extract NACP info from file %+v - %v", &currCnmt.Type, err.Error())
+					log.Warn().Int("type", int(currCnmt.Type)).Err(err).Msg("Failed to extract NACP info from file")
 				} else {
 					// currCnmt.Ncap = nacp
 					info.EmbeddedTitle = nacp.GetSuggestedTitle(settings)

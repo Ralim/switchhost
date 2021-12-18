@@ -72,10 +72,10 @@ func (lib *Library) fileScanningWorker() {
 			if requestedPath, err := filepath.Abs(event.path); err == nil {
 				//For now limited to having to use keys to read files, TODO: Regex the deets out of the file name
 				if lib.keys != nil {
-					log.Debug().Msgf("Starting requested scan of %s", requestedPath)
+					log.Debug().Str("path", requestedPath).Msg("Starting requested scan")
 					info, err := lib.getFileInfo(requestedPath)
 					if err != nil {
-						log.Warn().Msgf("could not determine sorted path for %s due to error %v during file parsing", requestedPath, err)
+						log.Warn().Err(err).Str("path", requestedPath).Msg("could not determine sorted path")
 					} else {
 						fileResultingPath := lib.sortFileIfApplicable(info, requestedPath)
 
@@ -94,7 +94,7 @@ func (lib *Library) fileScanningWorker() {
 
 						lib.AddFileRecord(record)
 					}
-					log.Debug().Msgf("Finished scan of %s", requestedPath)
+					log.Debug().Str("path", requestedPath).Msg("Finished scan")
 				}
 			}
 		}
@@ -118,7 +118,7 @@ func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath
 	}
 	if err == nil {
 		if newPath != currentPath {
-			log.Info().Msgf("Moving file %s to %s", currentPath, newPath)
+			log.Info().Str("oldPath", currentPath).Str("newPath", newPath).Msg("Attempting move")
 			err := os.MkdirAll(path.Dir(newPath), 0755)
 			if err != nil {
 				log.Warn().Msgf("Could not move %s to %s, due to err %v", currentPath, newPath, err)
