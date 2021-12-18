@@ -19,6 +19,7 @@ type scanRequest struct {
 	path             string
 	isEndOfStartScan bool
 	isNotifierBased  bool
+	fileRemoved      bool
 }
 
 // Library manages the representation of the game files on disk + their metadata
@@ -46,7 +47,7 @@ func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings) *Library
 		fileWatcher:           watcher.New(),
 	}
 
-	library.fileWatcher.FilterOps(watcher.Create)
+	library.fileWatcher.FilterOps(watcher.Create | watcher.Move | watcher.Remove)
 	return library
 
 }
@@ -78,10 +79,14 @@ func (lib *Library) Start() error {
 		}
 
 	}
-	//Start worker thread for handling file parsing
+	// Start worker thread for handling file parsing
 	go lib.fileScanningWorker()
+	// Run first file scan in background
 	go lib.RunScan()
+	// Start worker for cleaning up empty folders
 	go lib.cleanupFolderWorker()
+	// Start worker that manages files being deleted
+
 	go func() {
 		if err := lib.fileWatcher.Start(time.Minute); err != nil {
 			log.Warn().Err(err).Msg("File watcher could not start")
@@ -95,6 +100,13 @@ func (lib *Library) Start() error {
 				path:             change.Path,
 				isEndOfStartScan: false,
 				isNotifierBased:  true,
+				fileRemoved:      false,
+			}
+			switch change.Op {
+			case watcher.Create:
+			case watcher.Move:
+			case watcher.Remove:
+				event.fileRemoved = true
 			}
 			lib.fileScanRequests <- event
 		}

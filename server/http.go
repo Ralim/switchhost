@@ -115,7 +115,7 @@ func (server *Server) httpHandlevFile(respWriter http.ResponseWriter, r *http.Re
 	}
 
 }
-func (server *Server) httpHandleIndex(respWriter http.ResponseWriter, r *http.Request) {
+func (server *Server) httpHandleIndex(respWriter http.ResponseWriter, _ *http.Request) {
 	respWriter.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	err := server.webui.RenderGameListing(respWriter)
 
@@ -124,7 +124,7 @@ func (server *Server) httpHandleIndex(respWriter http.ResponseWriter, r *http.Re
 		return
 	}
 }
-func (server *Server) httpHandleCSS(respWriter http.ResponseWriter, r *http.Request) {
+func (server *Server) httpHandleCSS(respWriter http.ResponseWriter, _ *http.Request) {
 	respWriter.Header().Set("Content-Type", "text/css")
 	_, err := respWriter.Write(webui.SkeletonCss)
 	if err != nil {

@@ -18,7 +18,7 @@ The goal is to provide a reasonable all in one management tooling to keep things
 1. Actual filenames are hidden, and virtual file paths are used when serving
 1. Seamless settings file updates
 1. Does **NOT** use a database of any form, just keeps things in ram (pro: cant break state and con: has to scan files at start)
-1. All built in; no external dependencies other than running `go build`
+1. All built in; no external dependencies other than running `go build` by default
 
 ## Running the program
 

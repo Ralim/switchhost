@@ -165,7 +165,7 @@ func (driver *FTPDriver) GetFile(ctx *ftpserver.Context, path string, offset int
 	}
 	f, err := os.Open(realPath)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, fmt.Errorf("reading file from offset failed open - %w", err)
 	}
 
 	defer func() {
@@ -176,12 +176,12 @@ func (driver *FTPDriver) GetFile(ctx *ftpserver.Context, path string, offset int
 
 	info, err := f.Stat()
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, fmt.Errorf("reading file from offset failed stat - %w", err)
 	}
 
 	_, err = f.Seek(offset, io.SeekStart)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, fmt.Errorf("reading file from offset failed seek - %w", err)
 	}
 
 	return info.Size() - offset, f, nil

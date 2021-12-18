@@ -35,6 +35,34 @@ func (lib *Library) fileScanningWorker() {
 	for event := range lib.fileScanRequests {
 		if event.isEndOfStartScan {
 			log.Info().Msg("Inital startup scan is complete")
+		} else if event.fileRemoved {
+			// Scan the list of known files and check if the path matches
+			if oldPath, err := filepath.Abs(event.path); err == nil {
+				for key, item := range lib.filesKnown {
+					items := item.GetFiles()
+					match := false
+					for _, item := range items {
+						if item.Path == oldPath {
+							//This one is a match
+							match = true
+						}
+					}
+					if match {
+						//Dump the old record, requeue all files
+						log.Info().Str("path", oldPath).Msg("Deleted path matched, rescanning")
+						delete(lib.filesKnown, key)
+						for _, item := range items {
+							event := &scanRequest{
+								path:             item.Path,
+								isEndOfStartScan: false,
+								isNotifierBased:  true,
+							}
+							lib.fileScanRequests <- event
+						}
+						return
+					}
+				}
+			}
 		} else {
 			log.Debug().Str("path", event.path).Bool("isNotifier", event.isNotifierBased).Msg("Scan request")
 			if requestedPath, err := filepath.Abs(event.path); err == nil {
