@@ -89,7 +89,11 @@ func (s *Settings) Save() {
 
 func (s *Settings) GetAllScanFolders() []string {
 	res := []string{s.StorageFolder}
-	res = append(res, s.FoldersToScan...)
+	for _, folder := range s.FoldersToScan {
+		if folder != s.StorageFolder {
+			res = append(res, folder)
+		}
+	}
 	return res
 }
 
