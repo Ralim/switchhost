@@ -34,16 +34,20 @@ func (lib *Library) fileScanningWorker() {
 
 	for event := range lib.fileScanRequests {
 		if event.isEndOfStartScan {
-			log.Info().Msg("Inital startup scan is complete")
+			log.Info().Msg("Initial startup scan is complete")
 		} else if event.fileRemoved {
+
 			// Scan the list of known files and check if the path matches
 			if oldPath, err := filepath.Abs(event.path); err == nil {
+				log.Info().Str("path", oldPath).Msg("Delete event")
 				for key, item := range lib.filesKnown {
 					items := item.GetFiles()
 					match := false
 					for _, item := range items {
 						if item.Path == oldPath {
 							//This one is a match
+							match = true
+						} else if strings.HasPrefix(item.Path, oldPath) {
 							match = true
 						}
 					}

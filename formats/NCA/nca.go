@@ -114,7 +114,7 @@ func decryptNcaHeader(headerKey, encHeader []byte) (*Header, error) {
 	length := 0x400
 	decryptedHeader, err := decryptHeaderBlock(c, encHeader, length, NCASectorSize, 0)
 	if err != nil {
-		return nil, fmt.Errorf("inital NCA(1/2) decryption failed - %w", err)
+		return nil, fmt.Errorf("initial NCA(1/2) decryption failed - %w", err)
 	}
 
 	magic := string(decryptedHeader[NCASectorSize : NCASectorSize+0x04])

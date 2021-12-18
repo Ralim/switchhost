@@ -47,7 +47,8 @@ func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings) *Library
 		fileWatcher:           watcher.New(),
 	}
 
-	library.fileWatcher.FilterOps(watcher.Create | watcher.Move | watcher.Remove)
+	library.fileWatcher.FilterOps(watcher.Create, watcher.Move, watcher.Remove, watcher.Rename)
+
 	return library
 
 }
@@ -88,30 +89,58 @@ func (lib *Library) Start() error {
 	// Start worker that manages files being deleted
 
 	go func() {
-		if err := lib.fileWatcher.Start(time.Minute); err != nil {
-			log.Warn().Err(err).Msg("File watcher could not start")
+		if err := lib.fileWatcher.Start(time.Minute * 5); err != nil {
+			log.Warn().Err(err).Msg("File watcher could not be started")
 		}
 
 	}()
-	//Trivial map fro mwatcher into the pendings list
-	go func() {
-		for change := range lib.fileWatcher.Event {
-			event := &scanRequest{
-				path:             change.Path,
-				isEndOfStartScan: false,
-				isNotifierBased:  true,
-				fileRemoved:      false,
-			}
-			switch change.Op {
-			case watcher.Create:
-			case watcher.Move:
-			case watcher.Remove:
-				event.fileRemoved = true
-			}
-			lib.fileScanRequests <- event
-		}
-	}()
+	//Trivial map from watcher into the pendings list
+	go lib.fileWatcherWorker()
 	return nil
+}
+
+func (lib *Library) fileWatcherWorker() {
+	for {
+		select {
+		case change := <-lib.fileWatcher.Event:
+			log.Info().Str("path", change.Path).Str("event", change.Name()).Msg("Watcher event")
+			if change.IsDir() {
+				if change.Op == watcher.Remove || change.Op == watcher.Move {
+					lib.folderCleanupRequests <- change.Path
+					event := &scanRequest{
+						path:             change.Path,
+						isEndOfStartScan: false,
+						isNotifierBased:  true,
+						fileRemoved:      true,
+					}
+					lib.fileScanRequests <- event
+
+				} else {
+					if err := lib.ScanFolder(change.Path); err == nil {
+						lib.folderCleanupRequests <- change.Path
+					}
+				}
+			} else {
+				event := &scanRequest{
+					path:             change.Path,
+					isEndOfStartScan: false,
+					isNotifierBased:  true,
+					fileRemoved:      false,
+				}
+				switch change.Op {
+				case watcher.Create:
+				case watcher.Move:
+				case watcher.Remove:
+					event.fileRemoved = true
+				}
+				lib.fileScanRequests <- event
+			}
+		case err := <-lib.fileWatcher.Error:
+			log.Error().Err(err)
+		case <-lib.fileWatcher.Closed:
+			return
+		}
+	}
 }
 
 // RunScan runs a scan of all "normal" scan folders
