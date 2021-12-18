@@ -127,7 +127,7 @@ func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath
 				if err != nil {
 					log.Warn().Msgf("Could not move %s to %s, due to err %v", currentPath, newPath, err)
 				} else {
-					log.Debug().Msgf("Done moving %s -> %s", currentPath, newPath)
+					log.Info().Str("oldPath", currentPath).Str("newPath", newPath).Msg("Done moving")
 					//Push the folder to the cleanup path
 					lib.folderCleanupRequests <- filepath.Dir(currentPath)
 					return newPath
