@@ -118,7 +118,7 @@ func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath
 	}
 	if err == nil {
 		if newPath != currentPath {
-			log.Info().Str("oldPath", currentPath).Str("newPath", newPath).Msg("Attempting move")
+			log.Debug().Str("oldPath", currentPath).Str("newPath", newPath).Msg("Attempting move")
 			err := os.MkdirAll(path.Dir(newPath), 0755)
 			if err != nil {
 				log.Warn().Msgf("Could not move %s to %s, due to err %v", currentPath, newPath, err)
