@@ -15,9 +15,10 @@ import (
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/utilities"
 	"github.com/rs/zerolog/log"
-	"goftp.io/server/v2"
 	ftpserver "goftp.io/server/v2"
 )
+
+var ErrNotAllowed error = errors.New("not allowed")
 
 func StartFTP(lib *library.Library, settings *settings.Settings) {
 	driver := NewDriver(lib)
@@ -135,7 +136,7 @@ func (driver *FTPDriver) getRealFilePathFromVirtual(path string) (string, bool) 
 	return value.Path, true
 }
 
-func (driver *FTPDriver) Stat(ctx *server.Context, path string) (os.FileInfo, error) {
+func (driver *FTPDriver) Stat(ctx *ftpserver.Context, path string) (os.FileInfo, error) {
 	if path == "/" {
 		info := NewFakeFolder(path)
 		return &info, nil
@@ -227,15 +228,15 @@ func (driver *FTPDriver) PutFile(ctx *ftpserver.Context, destPath string, data i
 }
 
 func (driver *FTPDriver) DeleteDir(ctx *ftpserver.Context, path string) error {
-	return errors.New("read only server")
+	return ErrNotAllowed
 }
 
 func (driver *FTPDriver) DeleteFile(ctx *ftpserver.Context, path string) error {
-	return errors.New("read only server")
+	return ErrNotAllowed
 }
 
 func (driver *FTPDriver) Rename(ctx *ftpserver.Context, fromPath string, toPath string) error {
-	return errors.New("read only server")
+	return ErrNotAllowed
 }
 
 func (driver *FTPDriver) MakeDir(ctx *ftpserver.Context, path string) error {
@@ -244,5 +245,6 @@ func (driver *FTPDriver) MakeDir(ctx *ftpserver.Context, path string) error {
 }
 
 func (driver *FTPDriver) CheckPasswd(ctx *ftpserver.Context, user string, password string) (bool, error) {
+	// subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 	return true, nil
 }
