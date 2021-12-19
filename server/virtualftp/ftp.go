@@ -191,7 +191,6 @@ func (driver *FTPDriver) GetFile(ctx *ftpserver.Context, path string, offset int
 
 // PutFile implements Driver
 func (driver *FTPDriver) PutFile(ctx *ftpserver.Context, destPath string, data io.Reader, offset int64) (int64, error) {
-	fmt.Println(ctx, destPath, offset)
 	//Only allow uploads to resume at 0 or no resume at all
 	if !((offset == 0) || (offset == -1)) {
 		return 0, errors.New("no partial uploads")
@@ -244,7 +243,8 @@ func (driver *FTPDriver) Rename(ctx *ftpserver.Context, fromPath string, toPath 
 
 // MakeDir implements Driver
 func (driver *FTPDriver) MakeDir(ctx *ftpserver.Context, path string) error {
-	return errors.New("read only server")
+	//Ignored
+	return nil
 }
 
 func (driver *FTPDriver) CheckPasswd(ctx *ftpserver.Context, user string, password string) (bool, error) {
