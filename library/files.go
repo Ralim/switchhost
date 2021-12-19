@@ -2,6 +2,7 @@ package library
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"strings"
 
@@ -134,10 +135,10 @@ func (lib *Library) handleFileCollision(existing, proposed *FileOnDiskRecord) *F
 		//remove the older of the pair of files, or based on preferences
 		if new.Version != old.Version {
 			log.Info().Str("path", old.Path).Msg("Cleaning up file as newer exists")
-			//Version mis-match, rm old
-			// if err := os.Remove(old.Path); err != nil {
-			// 	log.Warn().Str("path", old.Path).Msg("Failed to delete older file on collision")
-			// }
+			if err := os.Remove(old.Path); err != nil {
+				log.Warn().Str("path", old.Path).Msg("Failed to delete older file on collision")
+			}
+			return new
 		} else {
 			//Same version, cleanup based on file extension
 			extNew := strings.ToLower(path.Ext(new.Path))
@@ -147,8 +148,16 @@ func (lib *Library) handleFileCollision(existing, proposed *FileOnDiskRecord) *F
 				//Mismatch compression selection
 				if strings.HasSuffix(extNew, "z") {
 					log.Info().Str("path", old.Path).Msg("Cleaning up file as newer is compressed")
+					if err := os.Remove(old.Path); err != nil {
+						log.Warn().Str("path", old.Path).Msg("Failed to delete older file on collision")
+					}
+					return new
 				} else {
 					log.Info().Str("path", new.Path).Msg("Cleaning up file as older is compressed")
+					if err := os.Remove(new.Path); err != nil {
+						log.Warn().Str("path", new.Path).Msg("Failed to delete new file on collision")
+					}
+					return old
 				}
 			} else {
 				//Compare on file types
@@ -158,14 +167,30 @@ func (lib *Library) handleFileCollision(existing, proposed *FileOnDiskRecord) *F
 					if lib.settings.PreferXCI {
 						if newType == "xc" {
 							log.Info().Str("path", old.Path).Msg("Cleaning up file as newer is preferred type")
+							if err := os.Remove(old.Path); err != nil {
+								log.Warn().Str("path", old.Path).Msg("Failed to delete older file on preferred type")
+							}
+							return new
 						} else if oldType == "xc" {
 							log.Info().Str("path", new.Path).Msg("Cleaning up file as older is preferred type")
+							if err := os.Remove(new.Path); err != nil {
+								log.Warn().Str("path", new.Path).Msg("Failed to delete new file on preferred type")
+							}
+							return old
 						}
 					} else {
 						if newType == "ns" {
 							log.Info().Str("path", old.Path).Msg("Cleaning up file as newer is preferred type")
+							if err := os.Remove(old.Path); err != nil {
+								log.Warn().Str("path", old.Path).Msg("Failed to delete older file on preferred type")
+							}
+							return new
 						} else if oldType == "ns" {
 							log.Info().Str("path", new.Path).Msg("Cleaning up file as older is preferred type")
+							if err := os.Remove(new.Path); err != nil {
+								log.Warn().Str("path", new.Path).Msg("Failed to delete new file on preferred type")
+							}
+							return old
 						}
 					}
 				}
