@@ -25,6 +25,8 @@ type Settings struct {
 	ServerMOTD          string   `json:"serverMOTD"`             // Server title used for public facing info
 	LogLevel            int      `json:"logLevel"`               // Log level, higher numbers reduce log output
 	LogFilePath         string   `json:"logPath"`                // Path to persist logs to, if empty none are persisted
+	Deduplicate         bool     `json:"deduplicate"`            // If we remove duplicate files for the same titleID, or old update files
+	PreferXCI           bool     `json:"preferXCI"`              // If when we find duplicates we pick the xci/xcz file over nsp/nsz
 	// Private
 	filePath string
 	logFile  *os.File

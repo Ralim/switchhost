@@ -16,10 +16,11 @@ import (
 )
 
 type scanRequest struct {
-	path             string
-	isEndOfStartScan bool
-	isNotifierBased  bool
-	fileRemoved      bool
+	path             string // The path to inspect
+	isEndOfStartScan bool   // Marker just used so that we can print the nice text to confirm inital scanning is done
+	isNotifierBased  bool   // did this come from the notifier or from a scan
+	fileRemoved      bool   // If file event is because file was removed
+	mustCleanupFile  bool   // If this file must be cleaned up by either sorting or delete (aka its an incoming file)
 }
 
 // Library manages the representation of the game files on disk + their metadata
@@ -160,6 +161,18 @@ func (lib *Library) RunScan() {
 		path:             "",
 		isEndOfStartScan: true,
 		isNotifierBased:  false,
+	}
+	lib.fileScanRequests <- event
+}
+
+func (lib *Library) NotifyIncomingFile(path string) {
+	log.Info().Str("path", path).Msg("Notified of uploaded file")
+	event := &scanRequest{
+		path:             path,
+		isEndOfStartScan: false,
+		isNotifierBased:  false,
+		fileRemoved:      false,
+		mustCleanupFile:  true,
 	}
 	lib.fileScanRequests <- event
 }
