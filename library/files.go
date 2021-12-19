@@ -149,10 +149,12 @@ func (lib *Library) handleFileCollision(existing, proposed *FileOnDiskRecord) *F
 			//Same version, cleanup based on file extension
 			extNew := strings.ToLower(path.Ext(new.Path))
 			extOld := strings.ToLower(path.Ext(old.Path))
-			//Prefer compressed files
+			//Prefer compressed files, if they are different we can use this to decide
 			if strings.HasSuffix(extNew, "z") != strings.HasSuffix(extOld, "z") {
 				//Mismatch compression selection
-				if strings.HasSuffix(extNew, "z") {
+				selectNew := (strings.HasSuffix(extNew, "z") && lib.settings.PreferCompressed) || strings.HasSuffix(extOld, "z") && !lib.settings.PreferCompressed
+
+				if selectNew {
 					log.Info().Str("path", old.Path).Msg("Cleaning up file as newer is compressed")
 					if err := os.Remove(old.Path); err != nil {
 						log.Warn().Str("path", old.Path).Msg("Failed to delete older file on collision")

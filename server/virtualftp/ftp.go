@@ -160,6 +160,7 @@ func (driver *FTPDriver) Stat(ctx *server.Context, path string) (os.FileInfo, er
 	fakeFile := NewFakeFile(path, fileInfo)
 	return &fakeFile, nil
 }
+
 func (driver *FTPDriver) GetFile(ctx *ftpserver.Context, path string, offset int64) (int64, io.ReadCloser, error) {
 	realPath, ok := driver.getRealFilePathFromVirtual(path)
 	if !ok {
@@ -189,7 +190,6 @@ func (driver *FTPDriver) GetFile(ctx *ftpserver.Context, path string, offset int
 	return info.Size() - offset, f, nil
 }
 
-// PutFile implements Driver
 func (driver *FTPDriver) PutFile(ctx *ftpserver.Context, destPath string, data io.Reader, offset int64) (int64, error) {
 	//Only allow uploads to resume at 0 or no resume at all
 	if !((offset == 0) || (offset == -1)) {
@@ -226,24 +226,20 @@ func (driver *FTPDriver) PutFile(ctx *ftpserver.Context, destPath string, data i
 	return bytesSaved, nil
 }
 
-// DeleteDir implements Driver
 func (driver *FTPDriver) DeleteDir(ctx *ftpserver.Context, path string) error {
 	return errors.New("read only server")
 }
 
-// DeleteFile implements Driver
 func (driver *FTPDriver) DeleteFile(ctx *ftpserver.Context, path string) error {
 	return errors.New("read only server")
 }
 
-// Rename implements Driver
 func (driver *FTPDriver) Rename(ctx *ftpserver.Context, fromPath string, toPath string) error {
 	return errors.New("read only server")
 }
 
-// MakeDir implements Driver
 func (driver *FTPDriver) MakeDir(ctx *ftpserver.Context, path string) error {
-	//Ignored
+	//Ignored as these are uploads that we are gonna strip the path from
 	return nil
 }
 
