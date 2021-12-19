@@ -1,7 +1,6 @@
 package library
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"strings"
@@ -105,8 +104,16 @@ func (lib *Library) AddFileRecord(file *FileOnDiskRecord) {
 		if oldValue.DLC == nil {
 			oldValue.DLC = []FileOnDiskRecord{*file}
 		} else {
-			//TODO check for collisions and cleanup
-			oldValue.DLC = append(oldValue.DLC, *file)
+			matched := false
+			for index, oldFile := range oldValue.DLC {
+				if oldFile.TitleID == file.TitleID {
+					matched = true
+					oldValue.DLC[index] = *lib.handleFileCollision(&oldFile, file)
+				}
+			}
+			if !matched {
+				oldValue.DLC = append(oldValue.DLC, *file)
+			}
 		}
 	}
 	lib.filesKnown[baseTitle] = oldValue
@@ -114,7 +121,6 @@ func (lib *Library) AddFileRecord(file *FileOnDiskRecord) {
 
 func (lib *Library) handleFileCollision(existing, proposed *FileOnDiskRecord) *FileOnDiskRecord {
 	//Given a collision, figure out the one to keep, do any deletes, and return the kept one
-	fmt.Println(existing, proposed)
 	if existing == nil {
 		return proposed
 	} else if proposed == nil {
