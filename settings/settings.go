@@ -28,6 +28,7 @@ type Settings struct {
 	Deduplicate         bool     `json:"deduplicate"`            // If we remove duplicate files for the same titleID, or old update files
 	PreferXCI           bool     `json:"preferXCI"`              // If when we find duplicates we pick the xci/xcz file over nsp/nsz
 	PreferCompressed    bool     `json:"preferCompressed"`       // Prefer compressed form of files on duplicate
+	UploadingAllowed    bool     `json:"uploadingAllowed"`       // Can FTP be used to push new files
 	// Private
 	filePath string
 	logFile  *os.File
@@ -53,6 +54,7 @@ func NewSettings(path string) *Settings {
 		OrganisationFormat:  "{TitleName}/{TitleName} {Type} {VersionDec} [{TitleID}][{Version}]",
 		PreferCompressed:    true,
 		PreferXCI:           false,
+		UploadingAllowed:    false,
 		TitlesDBURLs: []string{
 			// "https://tinfoil.media/repo/db/titles.json",
 			"https://raw.githubusercontent.com/blawar/titledb/master/US.en.json",

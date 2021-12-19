@@ -21,7 +21,7 @@ import (
 var ErrNotAllowed error = errors.New("not allowed")
 
 func StartFTP(lib *library.Library, settings *settings.Settings) {
-	driver := NewDriver(lib)
+	driver := NewDriver(lib, settings)
 	perm := ftpserver.NewSimplePerm("switch", "switch")
 	opt := &ftpserver.Options{
 		Name:           "switchhost",
@@ -45,12 +45,13 @@ func StartFTP(lib *library.Library, settings *settings.Settings) {
 
 // Driver for the ftp lib to remap the virtual index
 type FTPDriver struct {
-	library *library.Library
+	library  *library.Library
+	settings *settings.Settings
 }
 
 // NewDriver creates a new FTPDriver for the virtual FTP hosting
-func NewDriver(lib *library.Library) *FTPDriver {
-	return &FTPDriver{library: lib}
+func NewDriver(lib *library.Library, settings *settings.Settings) *FTPDriver {
+	return &FTPDriver{library: lib, settings: settings}
 }
 
 /*
@@ -192,6 +193,9 @@ func (driver *FTPDriver) GetFile(ctx *ftpserver.Context, path string, offset int
 }
 
 func (driver *FTPDriver) PutFile(ctx *ftpserver.Context, destPath string, data io.Reader, offset int64) (int64, error) {
+	if !driver.settings.UploadingAllowed {
+		return 0, ErrNotAllowed
+	}
 	//Only allow uploads to resume at 0 or no resume at all
 	if !((offset == 0) || (offset == -1)) {
 		return 0, errors.New("no partial uploads")
