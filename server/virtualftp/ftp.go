@@ -8,6 +8,7 @@ import (
 	"path"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/ralim/switchhost/library"
 	"github.com/ralim/switchhost/settings"
@@ -189,6 +190,21 @@ func (driver *FTPDriver) GetFile(ctx *ftpserver.Context, path string, offset int
 
 // PutFile implements Driver
 func (driver *FTPDriver) PutFile(ctx *ftpserver.Context, destPath string, data io.Reader, offset int64) (int64, error) {
+	fmt.Println(ctx, destPath, offset)
+	if !((offset == 0) || (offset == -1)) {
+		return 0, errors.New("no partial uploads")
+	}
+	//File uploads are filtered by file extension, and anything that isnt a NS? or XC? is rejected
+	extension := strings.ToLower(path.Ext(destPath))
+	switch extension {
+	case ".nsp":
+	case ".nsz":
+	case ".xci":
+	case ".xcz":
+	default:
+		return 0, errors.New("bad file type")
+	}
+	// We upload the file to a location in tmp during the upload and then sort or delete
 	return 0, errors.New("read only server")
 }
 
@@ -212,6 +228,6 @@ func (driver *FTPDriver) MakeDir(ctx *ftpserver.Context, path string) error {
 	return errors.New("read only server")
 }
 
-func (driver *FTPDriver) CheckPasswd(*ftpserver.Context, string, string) (bool, error) {
+func (driver *FTPDriver) CheckPasswd(ctx *ftpserver.Context, user string, password string) (bool, error) {
 	return true, nil
 }
