@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"regexp"
@@ -191,6 +192,7 @@ func (driver *FTPDriver) GetFile(ctx *ftpserver.Context, path string, offset int
 // PutFile implements Driver
 func (driver *FTPDriver) PutFile(ctx *ftpserver.Context, destPath string, data io.Reader, offset int64) (int64, error) {
 	fmt.Println(ctx, destPath, offset)
+	//Only allow uploads to resume at 0 or no resume at all
 	if !((offset == 0) || (offset == -1)) {
 		return 0, errors.New("no partial uploads")
 	}
@@ -205,7 +207,24 @@ func (driver *FTPDriver) PutFile(ctx *ftpserver.Context, destPath string, data i
 		return 0, errors.New("bad file type")
 	}
 	// We upload the file to a location in tmp during the upload and then sort or delete
-	return 0, errors.New("read only server")
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "switchhost-upload-*"+extension)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed creating temp file for upload")
+	}
+	// Now drain all the ftp upload into the temp file
+	bytesSaved, err := io.Copy(tmpFile, data)
+	if err != nil {
+		tmpFile.Close()
+		os.Remove(tmpFile.Name())
+		log.Warn().Err(err).Msg("Error during copying data in FTP upload")
+		return 0, err
+	}
+	//Notify the library code to scan this file and sort it or delete it
+	tmpFile.Close()
+
+	driver.library.NotifyIncomingFile(tmpFile.Name())
+
+	return bytesSaved, nil
 }
 
 // DeleteDir implements Driver
