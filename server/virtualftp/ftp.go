@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path"
 	"regexp"
@@ -13,6 +12,7 @@ import (
 	"github.com/ralim/switchhost/library"
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/utilities"
+	"github.com/rs/zerolog/log"
 	"goftp.io/server/v2"
 	ftpserver "goftp.io/server/v2"
 )
@@ -31,12 +31,12 @@ func StartFTP(lib *library.Library, settings *settings.Settings) {
 	// start ftp server
 	ftpServer, err := ftpserver.NewServer(opt)
 	if err != nil {
-		log.Fatal("Error creating FTP server:", err)
+		log.Error().Err(err).Msg("FTP server creation failed")
 	}
 
 	err = ftpServer.ListenAndServe()
 	if err != nil {
-		log.Fatal("Error starting FTP server:", err)
+		log.Error().Err(err).Msg("FTP server start failed")
 	}
 }
 
