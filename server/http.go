@@ -160,6 +160,7 @@ func (server *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 	//Check auth
 	if !server.checkAuth(req) {
+		res.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
 		http.Error(res, "Auth required", http.StatusUnauthorized)
 		return
 	}

@@ -69,7 +69,15 @@ func NewSettings(path string) *Settings {
 		AllowAnonFTP:        false,
 		AllowAnonHTTP:       false,
 		logFile:             nil,
-		Users:               []AuthUser{},
+		//Add a demo account
+		Users: []AuthUser{
+			{
+				Username:  "demo",
+				Password:  "demo",
+				AllowFTP:  false,
+				AllowHTTP: false,
+			},
+		},
 		TitlesDBURLs: []string{
 			// "https://tinfoil.media/repo/db/titles.json",
 			"https://raw.githubusercontent.com/blawar/titledb/master/US.en.json",
