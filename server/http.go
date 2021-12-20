@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/subtle"
 	"errors"
 	"fmt"
 	"io"
@@ -132,12 +133,36 @@ func (server *Server) httpHandleCSS(respWriter http.ResponseWriter, _ *http.Requ
 		return
 	}
 }
+func (server *Server) checkAuth(req *http.Request) bool {
+	if server.settings.AllowAnonHTTP {
+		return true // All is allowed if anon is on
+	}
+	username, password, ok := req.BasicAuth()
+	if !ok {
+		return false
+	}
+
+	match := false
+	for _, user := range server.settings.Users {
+		if subtle.ConstantTimeCompare([]byte(user.Username), []byte(username)) == 1 && subtle.ConstantTimeCompare([]byte(user.Password), []byte(password)) == 1 {
+			if user.AllowHTTP {
+				match = true
+			}
+		}
+	}
+
+	return match
+}
 func (server *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	if req.Method != "GET" {
 		http.Error(res, "Only GET is allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
+	//Check auth
+	if !server.checkAuth(req) {
+		http.Error(res, "Auth required", http.StatusUnauthorized)
+		return
+	}
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 
