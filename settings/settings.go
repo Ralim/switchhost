@@ -65,6 +65,11 @@ func NewSettings(path string) *Settings {
 		PreferCompressed:    true,
 		PreferXCI:           false,
 		UploadingAllowed:    false,
+		Deduplicate:         false,
+		AllowAnonFTP:        false,
+		AllowAnonHTTP:       false,
+		logFile:             nil,
+		Users:               []AuthUser{},
 		TitlesDBURLs: []string{
 			// "https://tinfoil.media/repo/db/titles.json",
 			"https://raw.githubusercontent.com/blawar/titledb/master/US.en.json",

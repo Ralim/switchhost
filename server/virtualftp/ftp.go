@@ -1,6 +1,7 @@
 package virtualftp
 
 import (
+	"crypto/subtle"
 	"errors"
 	"fmt"
 	"io"
@@ -248,7 +249,18 @@ func (driver *FTPDriver) MakeDir(ctx *ftpserver.Context, path string) error {
 	return nil
 }
 
-func (driver *FTPDriver) CheckPasswd(ctx *ftpserver.Context, user string, password string) (bool, error) {
-	// subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
-	return true, nil
+func (driver *FTPDriver) CheckPasswd(ctx *ftpserver.Context, username string, password string) (bool, error) {
+	if driver.settings.AllowAnonFTP {
+		return true, nil
+	}
+	match := false
+	for _, user := range driver.settings.Users {
+		if subtle.ConstantTimeCompare([]byte(user.Username), []byte(username)) == 1 && subtle.ConstantTimeCompare([]byte(user.Password), []byte(password)) == 1 {
+			if user.AllowFTP {
+				match = true
+			}
+		}
+	}
+	//
+	return match, nil
 }
