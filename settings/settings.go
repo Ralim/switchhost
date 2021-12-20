@@ -12,10 +12,11 @@ import (
 )
 
 type AuthUser struct {
-	Username  string `json:"username"`  // User username for authentication
-	Password  string `json:"password"`  // User password for authentication
-	AllowFTP  bool   `json:"allowFTP"`  // Can user use the ftp server
-	AllowHTTP bool   `json:"allowHTTP"` // Can user use the http server
+	Username    string `json:"username"`    // User username for authentication
+	Password    string `json:"password"`    // User password for authentication
+	AllowFTP    bool   `json:"allowFTP"`    // Can user use the ftp server
+	AllowHTTP   bool   `json:"allowHTTP"`   // Can user use the http server
+	AllowUpload bool   `json:"allowUpload"` // Can user upload new files
 }
 
 type Settings struct {
@@ -72,10 +73,11 @@ func NewSettings(path string) *Settings {
 		//Add a demo account
 		Users: []AuthUser{
 			{
-				Username:  "demo",
-				Password:  "demo",
-				AllowFTP:  false,
-				AllowHTTP: false,
+				Username:    "demo",
+				Password:    "demo",
+				AllowFTP:    false,
+				AllowHTTP:   false,
+				AllowUpload: false,
 			},
 		},
 		TitlesDBURLs: []string{

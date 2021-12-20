@@ -197,6 +197,10 @@ func (driver *FTPDriver) PutFile(ctx *ftpserver.Context, destPath string, data i
 	if !driver.settings.UploadingAllowed {
 		return 0, ErrNotAllowed
 	}
+	if allowed, ok := ctx.Sess.Data["uploadAllowed"]; !ok || !(allowed.(bool)) {
+		return 0, ErrNotAllowed
+	}
+
 	//Only allow uploads to resume at 0 or no resume at all
 	if !((offset == 0) || (offset == -1)) {
 		return 0, errors.New("no partial uploads")
@@ -250,7 +254,9 @@ func (driver *FTPDriver) MakeDir(ctx *ftpserver.Context, path string) error {
 }
 
 func (driver *FTPDriver) CheckPasswd(ctx *ftpserver.Context, username string, password string) (bool, error) {
+	ctx.Sess.Data["uploadAllowed"] = false
 	if driver.settings.AllowAnonFTP {
+		ctx.Sess.Data["uploadAllowed"] = true
 		return true, nil
 	}
 	match := false
@@ -259,6 +265,7 @@ func (driver *FTPDriver) CheckPasswd(ctx *ftpserver.Context, username string, pa
 			if user.AllowFTP {
 				match = true
 			}
+			ctx.Sess.Data["uploadAllowed"] = user.AllowUpload
 		}
 	}
 	//
