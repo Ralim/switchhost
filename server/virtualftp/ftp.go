@@ -189,7 +189,11 @@ func (driver *FTPDriver) GetFile(ctx *ftpserver.Context, path string, offset int
 	if err != nil {
 		return 0, nil, fmt.Errorf("reading file from offset failed seek - %w", err)
 	}
-
+	username, ok := ctx.Sess.Data["username"].(string)
+	if !ok {
+		username = "unknown"
+	}
+	log.Info().Str("user", username).Str("path", path).Msg("Started FTP stream")
 	return info.Size() - offset, f, nil
 }
 
@@ -259,9 +263,10 @@ func (driver *FTPDriver) CheckPasswd(ctx *ftpserver.Context, username string, pa
 	for _, user := range driver.settings.Users {
 		if subtle.ConstantTimeCompare([]byte(user.Username), []byte(username)) == 1 && subtle.ConstantTimeCompare([]byte(user.Password), []byte(password)) == 1 {
 			if user.AllowFTP {
+				ctx.Sess.Data["uploadAllowed"] = user.AllowUpload
+				ctx.Sess.Data["username"] = username
 				match = true
 			}
-			ctx.Sess.Data["uploadAllowed"] = user.AllowUpload
 		}
 	}
 	// If anon is enabled, anyone can download, but upload is controlled by user accounts
