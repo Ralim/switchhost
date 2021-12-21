@@ -37,42 +37,45 @@ func (lib *Library) fileScanningWorker() {
 			log.Info().Msg("Initial startup scan is complete")
 		} else if event.fileRemoved {
 
-			// Scan the list of known files and check if the path matches
-			if oldPath, err := filepath.Abs(event.path); err == nil {
-				log.Info().Str("path", oldPath).Msg("Delete event")
-				for key, item := range lib.filesKnown {
-					items := item.GetFiles()
-					match := false
-					for _, item := range items {
-						if item.Path == oldPath {
-							//This one is a match
-							match = true
-						} else if strings.HasPrefix(item.Path, oldPath) {
-							match = true
-						}
-					}
-					if match {
-						//Dump the old record, requeue all files
-						log.Info().Str("path", oldPath).Msg("Deleted path matched, rescanning")
-						delete(lib.filesKnown, key)
-						for _, item := range items {
-							event := &scanRequest{
-								path:             item.Path,
-								isEndOfStartScan: false,
-								isNotifierBased:  true,
-							}
-							lib.fileScanRequests <- event
-						}
-						return
-					}
-				}
-			}
+			lib.sortFileHandleRemoved(event)
 		} else {
 			lib.sortFileHandleScan(event)
 		}
 	}
 }
+func (lib *Library) sortFileHandleRemoved(event *scanRequest) {
 
+	// Scan the list of known files and check if the path matches
+	if oldPath, err := filepath.Abs(event.path); err == nil {
+		log.Info().Str("path", oldPath).Msg("Delete event")
+		for key, item := range lib.filesKnown {
+			items := item.GetFiles()
+			match := false
+			for _, item := range items {
+				if item.Path == oldPath {
+					//This one is a match
+					match = true
+				} else if strings.HasPrefix(item.Path, oldPath) {
+					match = true
+				}
+			}
+			if match {
+				//Dump the old record, requeue all files
+				log.Info().Str("path", oldPath).Msg("Deleted path matched, rescanning")
+				delete(lib.filesKnown, key)
+				for _, item := range items {
+					event := &scanRequest{
+						path:             item.Path,
+						isEndOfStartScan: false,
+						isNotifierBased:  true,
+					}
+					lib.fileScanRequests <- event
+				}
+				return
+			}
+		}
+	}
+}
 func (lib *Library) sortFileHandleScan(event *scanRequest) {
 	log.Debug().Str("path", event.path).Bool("isNotifier", event.isNotifierBased).Msg("Scan request")
 	if event.mustCleanupFile {
