@@ -41,7 +41,7 @@ func TestHTTPServerbasics(t *testing.T) {
 		t.Fatal(err)
 	}
 	response := tempBuffer.String()
-	if response != `{"files":[],"directories":null,"success":"SwitchRoooooot","titledb":{}}` {
+	if response != `{"files":[],"directories":null,"success":"SwitchRoooooot","titledb":{},"locations":[]}` {
 		t.Errorf("response doesnt match expected >%s<", response)
 	}
 	//Now insert a game into the library and run tests with content
@@ -58,7 +58,7 @@ func TestHTTPServerbasics(t *testing.T) {
 	}
 	response = tempBuffer.String()
 
-	if response != `{"files":[],"directories":null,"success":"SwitchRoooooot","titledb":{}}{"files":[{"url":"http://test/vfile/365418291444842496/0/data.bin#UnitTest [05123A0000000000][v0].nsp","size":0,"title":"UnitTest"}],"directories":null,"success":"SwitchRoooooot","titledb":{}}` {
+	if response != `{"files":[],"directories":null,"success":"SwitchRoooooot","titledb":{},"locations":[]}{"files":[{"url":"http://test/vfile/365418291444842496/0/data.bin#UnitTest [05123A0000000000][v0].nsp","size":0,"title":"UnitTest"}],"directories":null,"success":"SwitchRoooooot","titledb":{},"locations":[]}` {
 		t.Errorf("response doesnt match expected >%s<", response)
 	}
 
@@ -92,7 +92,7 @@ func TestHTTPFileServingJSON(t *testing.T) {
 	}
 
 	// Check the response body is what we expect.
-	expected := `{"files":[],"directories":null,"success":"SwitchRoooooot","titledb":{}}`
+	expected := `{"files":[],"directories":null,"success":"SwitchRoooooot","titledb":{},"locations":[]}`
 	if requestRecorder.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			requestRecorder.Body.String(), expected)
