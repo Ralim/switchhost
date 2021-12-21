@@ -21,7 +21,7 @@ func (lib *Library) cleanupFolderWorker() {
 				parent := ""
 				for _, baseFolder := range lib.settings.GetAllScanFolders() {
 					if folderAbs, err := filepath.Abs(baseFolder); err == nil {
-						if strings.HasPrefix(cleanupPath, folderAbs) {
+						if strings.HasPrefix(cleanupPath, folderAbs) && cleanupPath != folderAbs {
 							ok = true
 							parent = folderAbs
 						}

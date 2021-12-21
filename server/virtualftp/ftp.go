@@ -1,24 +1,28 @@
 package virtualftp
 
 import (
+	"crypto/subtle"
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"io/ioutil"
 	"os"
 	"path"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/ralim/switchhost/library"
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/utilities"
-	"goftp.io/server/v2"
+	"github.com/rs/zerolog/log"
 	ftpserver "goftp.io/server/v2"
 )
 
+var ErrNotAllowed error = errors.New("not allowed")
+
 func StartFTP(lib *library.Library, settings *settings.Settings) {
-	driver := NewDriver(lib)
+	driver := NewDriver(lib, settings)
 	perm := ftpserver.NewSimplePerm("switch", "switch")
 	opt := &ftpserver.Options{
 		Name:           "switchhost",
@@ -31,23 +35,24 @@ func StartFTP(lib *library.Library, settings *settings.Settings) {
 	// start ftp server
 	ftpServer, err := ftpserver.NewServer(opt)
 	if err != nil {
-		log.Fatal("Error creating FTP server:", err)
+		log.Error().Err(err).Msg("FTP server creation failed")
 	}
 
 	err = ftpServer.ListenAndServe()
 	if err != nil {
-		log.Fatal("Error starting FTP server:", err)
+		log.Error().Err(err).Msg("FTP server start failed")
 	}
 }
 
 // Driver for the ftp lib to remap the virtual index
 type FTPDriver struct {
-	library *library.Library
+	library  *library.Library
+	settings *settings.Settings
 }
 
 // NewDriver creates a new FTPDriver for the virtual FTP hosting
-func NewDriver(lib *library.Library) *FTPDriver {
-	return &FTPDriver{library: lib}
+func NewDriver(lib *library.Library, settings *settings.Settings) *FTPDriver {
+	return &FTPDriver{library: lib, settings: settings}
 }
 
 /*
@@ -133,7 +138,7 @@ func (driver *FTPDriver) getRealFilePathFromVirtual(path string) (string, bool) 
 	return value.Path, true
 }
 
-func (driver *FTPDriver) Stat(ctx *server.Context, path string) (os.FileInfo, error) {
+func (driver *FTPDriver) Stat(ctx *ftpserver.Context, path string) (os.FileInfo, error) {
 	if path == "/" {
 		info := NewFakeFolder(path)
 		return &info, nil
@@ -158,6 +163,7 @@ func (driver *FTPDriver) Stat(ctx *server.Context, path string) (os.FileInfo, er
 	fakeFile := NewFakeFile(path, fileInfo)
 	return &fakeFile, nil
 }
+
 func (driver *FTPDriver) GetFile(ctx *ftpserver.Context, path string, offset int64) (int64, io.ReadCloser, error) {
 	realPath, ok := driver.getRealFilePathFromVirtual(path)
 	if !ok {
@@ -187,31 +193,81 @@ func (driver *FTPDriver) GetFile(ctx *ftpserver.Context, path string, offset int
 	return info.Size() - offset, f, nil
 }
 
-// PutFile implements Driver
 func (driver *FTPDriver) PutFile(ctx *ftpserver.Context, destPath string, data io.Reader, offset int64) (int64, error) {
-	return 0, errors.New("read only server")
+	if !driver.settings.UploadingAllowed {
+		return 0, ErrNotAllowed
+	}
+	if allowed, ok := ctx.Sess.Data["uploadAllowed"]; !ok || !(allowed.(bool)) {
+		return 0, ErrNotAllowed
+	}
+
+	//Only allow uploads to resume at 0 or no resume at all
+	if !((offset == 0) || (offset == -1)) {
+		return 0, errors.New("no partial uploads")
+	}
+	//File uploads are filtered by file extension, and anything that isnt a NS? or XC? is rejected
+	extension := strings.ToLower(path.Ext(destPath))
+	switch extension {
+	case ".nsp":
+	case ".nsz":
+	case ".xci":
+	case ".xcz":
+	default:
+		return 0, errors.New("bad file type")
+	}
+	// We upload the file to a location in tmp during the upload and then sort or delete
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "switchhost-upload-*"+extension)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed creating temp file for upload")
+	}
+	// Now drain all the ftp upload into the temp file
+	bytesSaved, err := io.Copy(tmpFile, data)
+	if err != nil {
+		tmpFile.Close()
+		os.Remove(tmpFile.Name())
+		log.Warn().Err(err).Msg("Error during copying data in FTP upload")
+		return 0, err
+	}
+	//Notify the library code to scan this file and sort it or delete it
+	tmpFile.Close()
+
+	driver.library.NotifyIncomingFile(tmpFile.Name())
+
+	return bytesSaved, nil
 }
 
-// DeleteDir implements Driver
 func (driver *FTPDriver) DeleteDir(ctx *ftpserver.Context, path string) error {
-	return errors.New("read only server")
+	return ErrNotAllowed
 }
 
-// DeleteFile implements Driver
 func (driver *FTPDriver) DeleteFile(ctx *ftpserver.Context, path string) error {
-	return errors.New("read only server")
+	return ErrNotAllowed
 }
 
-// Rename implements Driver
 func (driver *FTPDriver) Rename(ctx *ftpserver.Context, fromPath string, toPath string) error {
-	return errors.New("read only server")
+	return ErrNotAllowed
 }
 
-// MakeDir implements Driver
 func (driver *FTPDriver) MakeDir(ctx *ftpserver.Context, path string) error {
-	return errors.New("read only server")
+	//Ignored as these are uploads that we are gonna strip the path from
+	return nil
 }
 
-func (driver *FTPDriver) CheckPasswd(*ftpserver.Context, string, string) (bool, error) {
-	return true, nil
+func (driver *FTPDriver) CheckPasswd(ctx *ftpserver.Context, username string, password string) (bool, error) {
+	ctx.Sess.Data["uploadAllowed"] = false
+	match := false
+	for _, user := range driver.settings.Users {
+		if subtle.ConstantTimeCompare([]byte(user.Username), []byte(username)) == 1 && subtle.ConstantTimeCompare([]byte(user.Password), []byte(password)) == 1 {
+			if user.AllowFTP {
+				match = true
+			}
+			ctx.Sess.Data["uploadAllowed"] = user.AllowUpload
+		}
+	}
+	// If anon is enabled, anyone can download, but upload is controlled by user accounts
+	if driver.settings.AllowAnonFTP {
+		return true, nil
+	}
+
+	return match, nil
 }

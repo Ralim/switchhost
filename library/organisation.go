@@ -68,35 +68,43 @@ func (lib *Library) fileScanningWorker() {
 				}
 			}
 		} else {
-			log.Debug().Str("path", event.path).Bool("isNotifier", event.isNotifierBased).Msg("Scan request")
-			if requestedPath, err := filepath.Abs(event.path); err == nil {
-				//For now limited to having to use keys to read files, TODO: Regex the deets out of the file name
-				if lib.keys != nil {
-					log.Debug().Str("path", requestedPath).Msg("Starting requested scan")
-					info, err := lib.getFileInfo(requestedPath)
-					if err != nil {
-						log.Warn().Err(err).Str("path", requestedPath).Msg("could not determine sorted path")
-					} else {
-						fileResultingPath := lib.sortFileIfApplicable(info, requestedPath)
+			lib.sortFileHandleScan(event)
+		}
+	}
+}
 
-						//Add to our repo, moved or not
-						record := &FileOnDiskRecord{
-							Path:    fileResultingPath,
-							TitleID: info.TitleID,
-							Version: info.Version,
-							Name:    info.EmbeddedTitle,
-							Size:    info.Size,
-						}
-						gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID)
-						if err == nil {
-							record.Name = gameTitle
-						}
+func (lib *Library) sortFileHandleScan(event *scanRequest) {
+	log.Debug().Str("path", event.path).Bool("isNotifier", event.isNotifierBased).Msg("Scan request")
+	if event.mustCleanupFile {
+		//We dont care if this fails because file doesnt exist, that just means it was cleaned up
+		defer os.Remove(event.path)
+	}
+	if requestedPath, err := filepath.Abs(event.path); err == nil {
+		//For now limited to having to use keys to read files, TODO: Regex the deets out of the file name
+		if lib.keys != nil {
+			log.Debug().Str("path", requestedPath).Msg("Starting requested scan")
+			info, err := lib.getFileInfo(requestedPath)
+			if err != nil {
+				log.Warn().Err(err).Str("path", requestedPath).Msg("could not determine sorted path")
+			} else {
+				fileResultingPath := lib.sortFileIfApplicable(info, requestedPath, event.mustCleanupFile)
 
-						lib.AddFileRecord(record)
-					}
-					log.Debug().Str("path", requestedPath).Msg("Finished scan")
+				//Add to our repo, moved or not
+				record := &FileOnDiskRecord{
+					Path:    fileResultingPath,
+					TitleID: info.TitleID,
+					Version: info.Version,
+					Name:    info.EmbeddedTitle,
+					Size:    info.Size,
 				}
+				gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID)
+				if err == nil {
+					record.Name = gameTitle
+				}
+
+				lib.AddFileRecord(record)
 			}
+			log.Debug().Str("path", requestedPath).Msg("Finished scan")
 		}
 	}
 }
@@ -105,10 +113,13 @@ func (lib *Library) fileScanningWorker() {
 // If sorting is turned off, or if the sorting fails for one reason or another, just returns the source path
 // If the file is moved, it returns the updated path
 // If the file is moved, it will also notify the cleanup handler to go scan if the folder needs cleanup
-func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath string) string {
-
+func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath string, isIncomingFile bool) string {
+	shouldSort := lib.settings.EnableSorting
+	if isIncomingFile {
+		shouldSort = true // Have to sort incoming files
+	}
 	// If sorting is off, no-op
-	if !lib.settings.EnableSorting || lib.keys == nil {
+	if !shouldSort || lib.keys == nil {
 		return currentPath
 	}
 	newPath, err := lib.determineIdealFilePath(infoInfo, currentPath)
@@ -123,6 +134,14 @@ func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath
 			if err != nil {
 				log.Warn().Msgf("Could not move %s to %s, due to err %v", currentPath, newPath, err)
 			} else {
+				//Check if file exists already, if it does then only overwrite if dedupe is on
+				if _, err := os.Stat(newPath); err == nil {
+					// File exists, so abort if not allowed to overwrite
+					if !lib.settings.Deduplicate {
+						log.Debug().Str("oldPath", currentPath).Str("newPath", newPath).Msg("Not moving file as deduplication is disabled")
+						return currentPath
+					}
+				}
 				err = utilities.RenameFile(currentPath, newPath)
 				if err != nil {
 					log.Warn().Msgf("Could not move %s to %s, due to err %v", currentPath, newPath, err)

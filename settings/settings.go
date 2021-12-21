@@ -11,20 +11,35 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type AuthUser struct {
+	Username    string `json:"username"`    // User username for authentication
+	Password    string `json:"password"`    // User password for authentication
+	AllowFTP    bool   `json:"allowFTP"`    // Can user use the ftp server
+	AllowHTTP   bool   `json:"allowHTTP"`   // Can user use the http server
+	AllowUpload bool   `json:"allowUpload"` // Can user upload new files
+}
+
 type Settings struct {
-	PreferredLangOrder  []int    `json:"preferredLanguageOrder"` // List of language id's to use when parsing CNMT data area
-	TitlesDBURLs        []string `json:"titlesDbUrls"`           // URL's to use when loading the local titledb
-	FoldersToScan       []string `json:"sourceFolders"`          // Folders to look for new files in
-	HTTPPort            int      `json:"httpPort"`               // Port used for HTTP
-	FTPPort             int      `json:"ftpPort"`                // Port used for FTP
-	StorageFolder       string   `json:"storageFolder"`          // Where sorted files are stored to
-	CacheFolder         string   `json:"cacheFolder"`            // Folder to cache downloads and other temp files, if preserved will avoid re-downloads. Can be temp tho
-	OrganisationFormat  string   `json:"organisationFormat"`     // Organisation format string
-	EnableSorting       bool     `json:"enableSorting"`          // If sorting should be performed
-	CleanupEmptyFolders bool     `json:"cleanupEmptyFolders"`    // Should we cleanup empty folders in the search and storage paths
-	ServerMOTD          string   `json:"serverMOTD"`             // Server title used for public facing info
-	LogLevel            int      `json:"logLevel"`               // Log level, higher numbers reduce log output
-	LogFilePath         string   `json:"logPath"`                // Path to persist logs to, if empty none are persisted
+	PreferredLangOrder  []int      `json:"preferredLanguageOrder"` // List of language id's to use when parsing CNMT data area
+	TitlesDBURLs        []string   `json:"titlesDbUrls"`           // URL's to use when loading the local titledb
+	FoldersToScan       []string   `json:"sourceFolders"`          // Folders to look for new files in
+	HTTPPort            int        `json:"httpPort"`               // Port used for HTTP
+	FTPPort             int        `json:"ftpPort"`                // Port used for FTP
+	StorageFolder       string     `json:"storageFolder"`          // Where sorted files are stored to
+	CacheFolder         string     `json:"cacheFolder"`            // Folder to cache downloads and other temp files, if preserved will avoid re-downloads. Can be temp tho
+	OrganisationFormat  string     `json:"organisationFormat"`     // Organisation format string
+	EnableSorting       bool       `json:"enableSorting"`          // If sorting should be performed
+	CleanupEmptyFolders bool       `json:"cleanupEmptyFolders"`    // Should we cleanup empty folders in the search and storage paths
+	ServerMOTD          string     `json:"serverMOTD"`             // Server title used for public facing info
+	LogLevel            int        `json:"logLevel"`               // Log level, higher numbers reduce log output
+	LogFilePath         string     `json:"logPath"`                // Path to persist logs to, if empty none are persisted
+	Deduplicate         bool       `json:"deduplicate"`            // If we remove duplicate files for the same titleID, or old update files
+	PreferXCI           bool       `json:"preferXCI"`              // If when we find duplicates we pick the xci/xcz file over nsp/nsz
+	PreferCompressed    bool       `json:"preferCompressed"`       // Prefer compressed form of files on duplicate
+	UploadingAllowed    bool       `json:"uploadingAllowed"`       // Can FTP be used to push new files
+	AllowAnonFTP        bool       `json:"allowAnonFTP"`           // Allow anon (open to public) FTP
+	AllowAnonHTTP       bool       `json:"allowAnonHTTP"`          // Allow anon (open to public) HTTP
+	Users               []AuthUser `json:"users"`                  // User accounts
 	// Private
 	filePath string
 	logFile  *os.File
@@ -48,6 +63,23 @@ func NewSettings(path string) *Settings {
 		LogLevel:            1,  //Info
 		LogFilePath:         "", // No log file
 		OrganisationFormat:  "{TitleName}/{TitleName} {Type} {VersionDec} [{TitleID}][{Version}]",
+		PreferCompressed:    true,
+		PreferXCI:           false,
+		UploadingAllowed:    false,
+		Deduplicate:         false,
+		AllowAnonFTP:        false,
+		AllowAnonHTTP:       false,
+		logFile:             nil,
+		//Add a demo account
+		Users: []AuthUser{
+			{
+				Username:    "demo",
+				Password:    "demo",
+				AllowFTP:    false,
+				AllowHTTP:   false,
+				AllowUpload: false,
+			},
+		},
 		TitlesDBURLs: []string{
 			// "https://tinfoil.media/repo/db/titles.json",
 			"https://raw.githubusercontent.com/blawar/titledb/master/US.en.json",

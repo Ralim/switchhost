@@ -1,6 +1,13 @@
 package library
 
-import "github.com/ralim/switchhost/titledb"
+import (
+	"os"
+	"path"
+	"strings"
+
+	"github.com/ralim/switchhost/titledb"
+	"github.com/rs/zerolog/log"
+)
 
 //TitleOnDiskCollection is a semi-logical grouping of titles on disk
 
@@ -78,35 +85,130 @@ func (lib *Library) AddFileRecord(file *FileOnDiskRecord) {
 	//Thus; base titleID can be found by AND'ing with 0xFFFFFFFFFFFFE000
 	// Then we can sort by the fields to know what kind of file it is
 	baseTitle := file.TitleID & 0xFFFFFFFFFFFFE000
-	if baseTitle == 0 { // If we masked out all bits, not a valid file to install most likely
+	if baseTitle == 0 { // If we masked out all bits, not a valid file for us to sort and store
+		log.Error().Str("file", file.Path).Msg("Couldn't determine titleID")
 		return
 	}
+
 	oldValue, ok := lib.filesKnown[baseTitle]
 	if !ok {
 		//Need to make entry
 		oldValue = TitleOnDiskCollection{}
 	}
 	if baseTitle == file.TitleID {
-		oldValue.BaseTitle = file
+		//Check if we are attempting an overwrite
+		oldValue.BaseTitle = lib.handleFileCollision(oldValue.BaseTitle, file)
 	} else if (file.TitleID & 0x0000000000000800) == 0x800 {
-		if oldValue.Update != nil {
-			if oldValue.Update.Version < file.Version {
-				oldValue.Update = file
-			}
-		} else {
-			oldValue.Update = file
-		}
+		oldValue.Update = lib.handleFileCollision(oldValue.Update, file)
 	} else {
 		if oldValue.DLC == nil {
 			oldValue.DLC = []FileOnDiskRecord{*file}
 		} else {
-			oldValue.DLC = append(oldValue.DLC, *file)
+			matched := false
+			for index, oldFile := range oldValue.DLC {
+				if oldFile.TitleID == file.TitleID {
+					matched = true
+					oldValue.DLC[index] = *lib.handleFileCollision(&oldFile, file)
+				}
+			}
+			if !matched {
+				oldValue.DLC = append(oldValue.DLC, *file)
+			}
 		}
 	}
 	lib.filesKnown[baseTitle] = oldValue
-
-	//TODO this function should note duplicates found on overwrite
 }
+
+func (lib *Library) handleFileCollision(existing, proposed *FileOnDiskRecord) *FileOnDiskRecord {
+	//Given a collision, figure out the one to keep, do any deletes, and return the kept one
+	if existing == nil {
+		return proposed
+	} else if proposed == nil {
+		return existing
+	}
+	if existing.Path == proposed.Path {
+		//Same file, dont care, send back newest
+		return proposed
+	}
+	new := proposed
+	old := existing
+	if existing.Version > proposed.Version {
+		//swapped
+		old = proposed
+		new = existing
+	}
+	if lib.settings.Deduplicate {
+		//remove the older of the pair of files, or based on preferences
+		if new.Version != old.Version {
+			log.Info().Str("path", old.Path).Msg("Cleaning up file as newer exists")
+			if err := os.Remove(old.Path); err != nil {
+				log.Warn().Str("path", old.Path).Msg("Failed to delete older file on collision")
+			}
+			return new
+		} else {
+			//Same version, cleanup based on file extension
+			extNew := strings.ToLower(path.Ext(new.Path))
+			extOld := strings.ToLower(path.Ext(old.Path))
+			//Prefer compressed files, if they are different we can use this to decide
+			if strings.HasSuffix(extNew, "z") != strings.HasSuffix(extOld, "z") {
+				//Mismatch compression selection
+				selectNew := (strings.HasSuffix(extNew, "z") && lib.settings.PreferCompressed) || strings.HasSuffix(extOld, "z") && !lib.settings.PreferCompressed
+
+				if selectNew {
+					log.Info().Str("path", old.Path).Msg("Cleaning up file as newer is compressed")
+					if err := os.Remove(old.Path); err != nil {
+						log.Warn().Str("path", old.Path).Msg("Failed to delete older file on collision")
+					}
+					return new
+				} else {
+					log.Info().Str("path", new.Path).Msg("Cleaning up file as older is compressed")
+					if err := os.Remove(new.Path); err != nil {
+						log.Warn().Str("path", new.Path).Msg("Failed to delete new file on collision")
+					}
+					return old
+				}
+			} else {
+				//Compare on file types
+				if extNew[0:3] != extOld[0:3] {
+					newType := extNew[1:3]
+					oldType := extOld[1:3]
+					if lib.settings.PreferXCI {
+						if newType == "xc" {
+							log.Info().Str("path", old.Path).Msg("Cleaning up file as newer is preferred type")
+							if err := os.Remove(old.Path); err != nil {
+								log.Warn().Str("path", old.Path).Msg("Failed to delete older file on preferred type")
+							}
+							return new
+						} else if oldType == "xc" {
+							log.Info().Str("path", new.Path).Msg("Cleaning up file as older is preferred type")
+							if err := os.Remove(new.Path); err != nil {
+								log.Warn().Str("path", new.Path).Msg("Failed to delete new file on preferred type")
+							}
+							return old
+						}
+					} else {
+						if newType == "ns" {
+							log.Info().Str("path", old.Path).Msg("Cleaning up file as newer is preferred type")
+							if err := os.Remove(old.Path); err != nil {
+								log.Warn().Str("path", old.Path).Msg("Failed to delete older file on preferred type")
+							}
+							return new
+						} else if oldType == "ns" {
+							log.Info().Str("path", new.Path).Msg("Cleaning up file as older is preferred type")
+							if err := os.Remove(new.Path); err != nil {
+								log.Warn().Str("path", new.Path).Msg("Failed to delete new file on preferred type")
+							}
+							return old
+						}
+					}
+				}
+			}
+
+		}
+	}
+	return new
+}
+
 func (lib *Library) GetFilesForTitleID(titleid uint64) (TitleOnDiskCollection, bool) {
 	val, ok := lib.filesKnown[titleid]
 	return val, ok
