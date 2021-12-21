@@ -40,6 +40,7 @@ type Settings struct {
 	AllowAnonFTP        bool       `json:"allowAnonFTP"`           // Allow anon (open to public) FTP
 	AllowAnonHTTP       bool       `json:"allowAnonHTTP"`          // Allow anon (open to public) HTTP
 	Users               []AuthUser `json:"users"`                  // User accounts
+	JSONLocations       []string   `json:"jsonLocations"`          // Extra locations to add to locations field in json for backup instances
 	// Private
 	filePath string
 	logFile  *os.File
@@ -53,6 +54,7 @@ func NewSettings(path string) *Settings {
 		filePath:            path,
 		PreferredLangOrder:  []int{1, 0},
 		FoldersToScan:       []string{"./incoming_files"},
+		JSONLocations:       []string{},
 		StorageFolder:       "./game_library",
 		CacheFolder:         "/tmp/",
 		EnableSorting:       false, // default "safe"

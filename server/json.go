@@ -16,17 +16,19 @@ type fileEntry struct {
 	Name string `json:"title"`
 }
 type jsonIndex struct {
-	Files   []fileEntry                     `json:"files"`
-	Folders []string                        `json:"directories"`
-	MOTD    string                          `json:"success"`
-	TitleDB map[string]titledb.TitleDBEntry `json:"titledb"`
+	Files           []fileEntry                     `json:"files"`
+	Folders         []string                        `json:"directories"`
+	MOTD            string                          `json:"success"`
+	TitleDB         map[string]titledb.TitleDBEntry `json:"titledb"`
+	BackupLocations []string                        `json:"locations"`
 }
 
 func (server *Server) generateFileJSONPayload(writer io.Writer, hostNameToUse string, useHTTPS bool) error {
 	response := jsonIndex{
-		Files:   []fileEntry{},
-		MOTD:    server.settings.ServerMOTD,
-		TitleDB: make(map[string]titledb.TitleDBEntry),
+		Files:           []fileEntry{},
+		MOTD:            server.settings.ServerMOTD,
+		TitleDB:         make(map[string]titledb.TitleDBEntry),
+		BackupLocations: server.settings.JSONLocations,
 	}
 
 	for _, file := range server.library.ListFiles() {
