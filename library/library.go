@@ -32,20 +32,22 @@ type Library struct {
 	//Organisation
 	titledb *titledb.TitlesDB
 
-	fileScanRequests      chan *scanRequest
-	folderCleanupRequests chan string
-	fileWatcher           *watcher.Watcher
+	fileScanRequests        chan *scanRequest
+	folderCleanupRequests   chan string
+	fileCompressionRequests chan string
+	fileWatcher             *watcher.Watcher
 }
 
 func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings) *Library {
 	library := &Library{
 
-		fileScanRequests:      make(chan *scanRequest, 32),
-		folderCleanupRequests: make(chan string, 128),
-		titledb:               titledb,
-		settings:              settings,
-		filesKnown:            make(map[uint64]TitleOnDiskCollection),
-		fileWatcher:           watcher.New(),
+		fileScanRequests:        make(chan *scanRequest, 32),
+		folderCleanupRequests:   make(chan string, 128),
+		fileCompressionRequests: make(chan string, 128),
+		titledb:                 titledb,
+		settings:                settings,
+		filesKnown:              make(map[uint64]TitleOnDiskCollection),
+		fileWatcher:             watcher.New(),
 	}
 
 	library.fileWatcher.FilterOps(watcher.Create, watcher.Move, watcher.Remove, watcher.Rename)
