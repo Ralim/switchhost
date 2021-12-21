@@ -123,3 +123,24 @@ func TestAuthCheckPasswd(t *testing.T) {
 	}
 
 }
+
+func TestEnsureFTPHandlesNotUsedFeatures(t *testing.T) {
+
+	driver := NewDriver(nil, nil)
+	err := driver.DeleteDir(nil, "")
+	if err != ErrNotAllowed {
+		t.Error("Should raise error on any delete")
+	}
+	err = driver.DeleteFile(nil, "")
+	if err != ErrNotAllowed {
+		t.Error("Should raise error on any delete")
+	}
+	err = driver.Rename(nil, "", "")
+	if err != ErrNotAllowed {
+		t.Error("Should raise error on any rename")
+	}
+	err = driver.MakeDir(nil, "")
+	if err != nil {
+		t.Error("Should silently drop MakeDir")
+	}
+}
