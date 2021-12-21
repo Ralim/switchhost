@@ -90,7 +90,7 @@ func (lib *Library) Start() error {
 	// Start worker that manages files being deleted
 
 	go func() {
-		if err := lib.fileWatcher.Start(time.Minute * 5); err != nil {
+		if err := lib.fileWatcher.Start(time.Minute * 30); err != nil {
 			log.Warn().Err(err).Msg("File watcher could not be started")
 		}
 
