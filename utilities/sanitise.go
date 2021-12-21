@@ -4,7 +4,8 @@ package utilities
 // Mostly removing slashes and trademark/copyright icons and such
 // Things that are "ugly" and dont contribute useful information
 
-var BadRunes map[rune]bool = map[rune]bool{'/': false, '™': false, '®': false, '©': false, '\\': false}
+//And : breaks some certain software when browsing
+var BadRunes map[rune]bool = map[rune]bool{'/': false, '™': false, '®': false, '©': false, '\\': false, ':': false}
 
 func CleanName(s string) string {
 	out := ""
