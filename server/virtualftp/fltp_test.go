@@ -109,5 +109,17 @@ func TestAuthCheckPasswd(t *testing.T) {
 	if value, ok := ctx.Sess.Data["uploadAllowed"]; !ok || value.(bool) {
 		t.Error("Should set the upload status")
 	}
+	// Extra case
+	// If anon ftp is allowed, but valid auth given, should handle upload perms
+
+	setting.Users = []settings.AuthUser{{Username: "test", Password: "testPass", AllowFTP: true, AllowUpload: true}}
+	setting.AllowAnonFTP = true
+	ok, _ = driver.CheckPasswd(ctx, "test", "testPass")
+	if !ok {
+		t.Error("should allow valid user")
+	}
+	if value, ok := ctx.Sess.Data["uploadAllowed"]; !ok || !value.(bool) {
+		t.Error("Should set the upload status")
+	}
 
 }

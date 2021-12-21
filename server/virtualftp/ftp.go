@@ -255,10 +255,6 @@ func (driver *FTPDriver) MakeDir(ctx *ftpserver.Context, path string) error {
 
 func (driver *FTPDriver) CheckPasswd(ctx *ftpserver.Context, username string, password string) (bool, error) {
 	ctx.Sess.Data["uploadAllowed"] = false
-	if driver.settings.AllowAnonFTP {
-		ctx.Sess.Data["uploadAllowed"] = true
-		return true, nil
-	}
 	match := false
 	for _, user := range driver.settings.Users {
 		if subtle.ConstantTimeCompare([]byte(user.Username), []byte(username)) == 1 && subtle.ConstantTimeCompare([]byte(user.Password), []byte(password)) == 1 {
@@ -268,6 +264,10 @@ func (driver *FTPDriver) CheckPasswd(ctx *ftpserver.Context, username string, pa
 			ctx.Sess.Data["uploadAllowed"] = user.AllowUpload
 		}
 	}
-	//
+	// If anon is enabled, anyone can download, but upload is controlled by user accounts
+	if driver.settings.AllowAnonFTP {
+		return true, nil
+	}
+
 	return match, nil
 }
