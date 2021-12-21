@@ -29,9 +29,8 @@ After running the first time a `config.json` will be created with the default va
 
 ## Further work (coming)
 
-1. Authentication
-1. More detailed web-ui
 1. Add ability to compress files to NSZ/XCZ
+1. More detailed web-ui
 1. Empty folder cleanup needs rework, its rather messy at the moment
 
 ## Keys (semi-optional)
