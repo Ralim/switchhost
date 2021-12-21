@@ -83,6 +83,10 @@ func (lib *Library) sortFileHandleScan(event *scanRequest) {
 		defer os.Remove(event.path)
 	}
 	if requestedPath, err := filepath.Abs(event.path); err == nil {
+		//Dont bother wasting time on files that no longer exist
+		if !utilities.Exists(requestedPath) {
+			return
+		}
 		//For now limited to having to use keys to read files, TODO: Regex the deets out of the file name
 		if lib.keys != nil {
 			log.Debug().Str("path", requestedPath).Msg("Starting requested scan")
@@ -100,14 +104,27 @@ func (lib *Library) sortFileHandleScan(event *scanRequest) {
 					Name:    info.EmbeddedTitle,
 					Size:    info.Size,
 				}
-				gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID)
-				if err == nil {
+				if gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID); err == nil {
 					record.Name = gameTitle
 				}
 
 				lib.AddFileRecord(record)
+				lib.postFileAddToLibraryHooks(record)
 			}
 			log.Debug().Str("path", requestedPath).Msg("Finished scan")
+		}
+	}
+}
+
+func (lib *Library) postFileAddToLibraryHooks(file *FileOnDiskRecord) {
+	//Dispatch any post hooks
+	if lib.settings.CompressionEnabled {
+		extension := strings.ToLower(path.Ext(file.Path))
+		if len(extension) == 4 {
+			if extension[3] != 'z' {
+				//File might be compressable, send it off
+				lib.fileCompressionRequests <- file.Path
+			}
 		}
 	}
 }

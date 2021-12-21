@@ -16,10 +16,12 @@ func (lib *Library) compressionWorker() {
 
 	for request := range lib.fileCompressionRequests {
 		//For each requested file, run it through NSZ and check output
+		log.Info().Str("path", request).Msg("Starting compression")
 		err := lib.NSZCompressFile(request)
 		if err != nil {
 			log.Err(err).Msg("NSZ compression failed")
 		} else {
+			log.Info().Str("path", request).Msg("Compression complete")
 			// Check if the source file has been deleted
 			// Check if the expected output file is made
 

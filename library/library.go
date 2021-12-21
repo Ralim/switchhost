@@ -89,6 +89,8 @@ func (lib *Library) Start() error {
 	go lib.RunScan()
 	// Start worker for cleaning up empty folders
 	go lib.cleanupFolderWorker()
+	// Start worker for nsz compression
+	go lib.compressionWorker()
 	// Start worker that manages files being deleted
 
 	go func() {
