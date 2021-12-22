@@ -124,6 +124,7 @@ func (lib *Library) postFileAddToLibraryHooks(file *FileOnDiskRecord) {
 		if len(extension) == 4 {
 			if extension[3] != 'z' {
 				//File might be compressable, send it off
+				log.Info().Str("path", file.Path).Msg("Adding to compression list")
 				lib.fileCompressionRequests <- file.Path
 			}
 		}

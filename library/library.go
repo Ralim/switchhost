@@ -43,9 +43,9 @@ func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings) *Library
 		titledb:  titledb,
 		settings: settings,
 		// Channels
-		fileScanRequests:        make(chan *scanRequest, 32),
-		folderCleanupRequests:   make(chan string, 128),
-		fileCompressionRequests: make(chan string, 128),
+		fileScanRequests:        make(chan *scanRequest, 256),
+		folderCleanupRequests:   make(chan string, 256),
+		fileCompressionRequests: make(chan string, 256),
 		filesKnown:              make(map[uint64]TitleOnDiskCollection),
 		// Internal objects
 		waitgroup:          &sync.WaitGroup{},
