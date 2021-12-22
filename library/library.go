@@ -7,9 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
-	"github.com/radovskyb/watcher"
 	"github.com/ralim/switchhost/keystore"
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/titledb"
@@ -40,7 +38,6 @@ type Library struct {
 	folderCleanupRequests   chan string
 	fileCompressionRequests chan string
 	exitRequest             chan bool
-	fileWatcher             *watcher.Watcher
 }
 
 func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings) *Library {
@@ -54,12 +51,9 @@ func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings) *Library
 		exitRequest:             make(chan bool),
 		filesKnown:              make(map[uint64]TitleOnDiskCollection),
 		// Internal objects
-		fileWatcher:        watcher.New(),
 		waitgroup:          &sync.WaitGroup{},
 		waitgroupOrganiser: &sync.WaitGroup{},
 	}
-
-	library.fileWatcher.FilterOps(watcher.Create, watcher.Move, watcher.Remove, watcher.Rename)
 
 	return library
 
@@ -104,18 +98,7 @@ func (lib *Library) Start() error {
 	// Start worker for nsz compression
 	lib.waitgroup.Add(1)
 	go lib.compressionWorker()
-	// Start worker that manages files being deleted
-	lib.waitgroup.Add(1)
-	go func() {
-		defer lib.waitgroup.Done()
-		if err := lib.fileWatcher.Start(time.Minute); err != nil {
-			log.Warn().Err(err).Msg("File watcher could not be started")
-		}
 
-	}()
-	//Trivial map from watcher into the pendings list
-	lib.waitgroup.Add(1)
-	go lib.fileWatcherWorker()
 	return nil
 }
 
@@ -126,7 +109,6 @@ func (lib *Library) Stop() {
 	// We want to stop (a) All scanning and (b) compression and cleanup _first_
 	// Then wind down the main organiser thread
 
-	lib.fileWatcher.Close()            // Stops any new file changes coming in, and makes its two goroutines exit
 	close(lib.fileCompressionRequests) // causes compression to pack up
 	close(lib.folderCleanupRequests)   // Will cause cleanup to exit
 
@@ -135,53 +117,6 @@ func (lib *Library) Stop() {
 
 	close(lib.fileScanRequests)
 	lib.waitgroupOrganiser.Wait()
-}
-func (lib *Library) fileWatcherWorker() {
-	defer lib.waitgroup.Done()
-	for {
-		select {
-		case change := <-lib.fileWatcher.Event:
-			log.Info().Str("path", change.Path).Str("event", change.Name()).Msg("Watcher event")
-			if change.IsDir() {
-				if change.Op == watcher.Remove || change.Op == watcher.Move {
-					lib.folderCleanupRequests <- change.Path
-					event := &scanRequest{
-						path:             change.Path,
-						isEndOfStartScan: false,
-						isNotifierBased:  true,
-						fileRemoved:      true,
-					}
-					if lib.running {
-						lib.fileScanRequests <- event
-					}
-				} else {
-					if err := lib.ScanFolder(change.Path); err == nil {
-						lib.folderCleanupRequests <- change.Path
-					}
-				}
-			} else {
-				event := &scanRequest{
-					path:             change.Path,
-					isEndOfStartScan: false,
-					isNotifierBased:  true,
-					fileRemoved:      false,
-				}
-				switch change.Op {
-				case watcher.Create:
-				case watcher.Move:
-				case watcher.Remove:
-					event.fileRemoved = true
-				}
-				if lib.running {
-					lib.fileScanRequests <- event
-				}
-			}
-		case err := <-lib.fileWatcher.Error:
-			log.Error().Err(err)
-		case <-lib.fileWatcher.Closed:
-			return
-		}
-	}
 }
 
 // RunScan runs a scan of all "normal" scan folders
@@ -192,10 +127,6 @@ func (lib *Library) RunScan() {
 			if lib.running {
 				lib.folderCleanupRequests <- folder
 			}
-		}
-		// Setup watch on folder for new files
-		if err := lib.fileWatcher.AddRecursive(folder); err != nil {
-			log.Error().Err(err).Str("folder", folder).Msg("Could not install watcher")
 		}
 
 	}
