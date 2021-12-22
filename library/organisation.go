@@ -23,7 +23,8 @@ const (
 )
 
 func (lib *Library) fileScanningWorker() {
-	defer lib.waitgroupOrganiser.Done()
+	defer lib.waitgroup.Done()
+	defer log.Info().Msg("Organisation task exiting")
 	// This worker thread listens on the channel for notification of any files that should be checked
 	// Single threaded to prevent any race issues
 
@@ -33,16 +34,23 @@ func (lib *Library) fileScanningWorker() {
 	// 3. Update our in ram db to the file existance :)
 	// 4. If the containing folder is now empty, remove it
 
-	for event := range lib.fileScanRequests {
-		if event.isEndOfStartScan {
-			log.Info().Msg("Initial startup scan is complete")
-		} else if event.fileRemoved {
-			lib.sortFileHandleRemoved(event)
-		} else {
-			lib.sortFileHandleScan(event)
+	for {
+		select {
+		case <-lib.exit:
+			lib.exit <- true
+			return
+		case event := <-lib.fileScanRequests:
+			if event.isEndOfStartScan {
+				log.Info().Msg("Initial startup scan is complete")
+			} else if event.fileRemoved {
+				lib.sortFileHandleRemoved(event)
+			} else {
+				lib.sortFileHandleScan(event)
+			}
+
 		}
 	}
-	log.Info().Msg("Organisation task exiting")
+
 }
 func (lib *Library) sortFileHandleRemoved(event *scanRequest) {
 
