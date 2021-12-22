@@ -35,6 +35,7 @@ type Library struct {
 
 	waitgroup               *sync.WaitGroup
 	waitgroupOrganiser      *sync.WaitGroup
+	running                 bool
 	fileScanRequests        chan *scanRequest
 	folderCleanupRequests   chan string
 	fileCompressionRequests chan string
@@ -79,7 +80,7 @@ func (lib *Library) LoadKeys(keysDBReader io.Reader) error {
 
 //Start spawns internal workers and performs any non-trivial setup time tasks
 func (lib *Library) Start() error {
-
+	lib.running = true
 	//Check output folder exists if sorting enabled
 	if lib.settings.EnableSorting {
 		if _, err := os.Stat(lib.settings.StorageFolder); os.IsNotExist(err) {
@@ -184,7 +185,9 @@ func (lib *Library) RunScan() {
 	defer lib.waitgroup.Done()
 	for _, folder := range lib.settings.GetAllScanFolders() {
 		if err := lib.ScanFolder(folder); err == nil {
-			lib.folderCleanupRequests <- folder
+			if lib.running {
+				lib.folderCleanupRequests <- folder
+			}
 		}
 		// Setup watch on folder for new files
 		if err := lib.fileWatcher.AddRecursive(folder); err != nil {
@@ -198,7 +201,9 @@ func (lib *Library) RunScan() {
 		isEndOfStartScan: true,
 		isNotifierBased:  false,
 	}
-	lib.fileScanRequests <- event
+	if lib.running {
+		lib.fileScanRequests <- event
+	}
 }
 
 func (lib *Library) NotifyIncomingFile(path string) {
@@ -210,7 +215,9 @@ func (lib *Library) NotifyIncomingFile(path string) {
 		fileRemoved:      false,
 		mustCleanupFile:  true,
 	}
-	lib.fileScanRequests <- event
+	if lib.running {
+		lib.fileScanRequests <- event
+	}
 }
 
 //ScanFolder recursively scans the provied folder and feeds it to the organisation queue
@@ -241,7 +248,9 @@ func (lib *Library) ScanFolder(path string) error {
 						isEndOfStartScan: false,
 						isNotifierBased:  false,
 					}
-					lib.fileScanRequests <- event
+					if lib.running {
+						lib.fileScanRequests <- event
+					}
 				}
 			}
 		}

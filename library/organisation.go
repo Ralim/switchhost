@@ -71,7 +71,9 @@ func (lib *Library) sortFileHandleRemoved(event *scanRequest) {
 						isEndOfStartScan: false,
 						isNotifierBased:  true,
 					}
-					lib.fileScanRequests <- event
+					if lib.running {
+						lib.fileScanRequests <- event
+					}
 				}
 				return
 			}
@@ -125,7 +127,9 @@ func (lib *Library) postFileAddToLibraryHooks(file *FileOnDiskRecord) {
 		if len(extension) == 4 {
 			if extension[3] != 'z' {
 				//File might be compressable, send it off
-				lib.fileCompressionRequests <- file.Path
+				if lib.running {
+					lib.fileCompressionRequests <- file.Path
+				}
 			}
 		}
 	}
@@ -170,7 +174,9 @@ func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath
 				} else {
 					log.Info().Str("oldPath", currentPath).Str("newPath", newPath).Msg("Done moving")
 					//Push the folder to the cleanup path
-					lib.folderCleanupRequests <- filepath.Dir(currentPath)
+					if lib.running {
+						lib.folderCleanupRequests <- filepath.Dir(currentPath)
+					}
 					return newPath
 				}
 			}
