@@ -42,6 +42,7 @@ type Settings struct {
 	JSONLocations       []string   `json:"jsonLocations"`          // Extra locations to add to locations field in json for backup instances
 	NSZCommandLine      string     `json:"NSZCommandLine"`         // Base command line used to run NSZ
 	CompressionEnabled  bool       `json:"compressionEnabled"`     // Should files be converted to their compressed verions
+	TempFilesFolder     string     `json:"tempFilesFolder"`        // Temporary files
 
 	// Private
 	filePath string
@@ -76,6 +77,7 @@ func NewSettings(path string) *Settings {
 		AllowAnonFTP:        false,
 		AllowAnonHTTP:       false,
 		logFile:             nil,
+		TempFilesFolder:     "",
 		//Add a demo account
 		Users: []AuthUser{
 			{

@@ -233,7 +233,7 @@ func (driver *FTPDriver) PutFile(ctx *ftpserver.Context, destPath string, data i
 		return 0, errors.New("bad file type")
 	}
 	// We upload the file to a location in tmp during the upload and then sort or delete
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "switchhost-upload-*"+extension)
+	tmpFile, err := ioutil.TempFile(driver.settings.TempFilesFolder, "switchhost-upload-*"+extension)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed creating temp file for upload")
 	}
