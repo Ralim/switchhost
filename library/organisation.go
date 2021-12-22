@@ -37,7 +37,6 @@ func (lib *Library) fileScanningWorker() {
 		if event.isEndOfStartScan {
 			log.Info().Msg("Initial startup scan is complete")
 		} else if event.fileRemoved {
-
 			lib.sortFileHandleRemoved(event)
 		} else {
 			lib.sortFileHandleScan(event)
@@ -71,9 +70,7 @@ func (lib *Library) sortFileHandleRemoved(event *scanRequest) {
 						isEndOfStartScan: false,
 						isNotifierBased:  true,
 					}
-					if lib.running {
-						lib.fileScanRequests <- event
-					}
+					lib.fileScanRequests <- event
 				}
 				return
 			}
@@ -81,7 +78,7 @@ func (lib *Library) sortFileHandleRemoved(event *scanRequest) {
 	}
 }
 func (lib *Library) sortFileHandleScan(event *scanRequest) {
-	log.Debug().Str("path", event.path).Bool("isNotifier", event.isNotifierBased).Msg("Scan request")
+	log.Info().Str("path", event.path).Bool("isNotifier", event.isNotifierBased).Msg("Scan request")
 	if event.mustCleanupFile {
 		//We dont care if this fails because file doesnt exist, that just means it was cleaned up
 		defer os.Remove(event.path)
@@ -127,9 +124,7 @@ func (lib *Library) postFileAddToLibraryHooks(file *FileOnDiskRecord) {
 		if len(extension) == 4 {
 			if extension[3] != 'z' {
 				//File might be compressable, send it off
-				if lib.running {
-					lib.fileCompressionRequests <- file.Path
-				}
+				lib.fileCompressionRequests <- file.Path
 			}
 		}
 	}
@@ -174,9 +169,7 @@ func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath
 				} else {
 					log.Info().Str("oldPath", currentPath).Str("newPath", newPath).Msg("Done moving")
 					//Push the folder to the cleanup path
-					if lib.running {
-						lib.folderCleanupRequests <- filepath.Dir(currentPath)
-					}
+					lib.folderCleanupRequests <- filepath.Dir(currentPath)
 					return newPath
 				}
 			}

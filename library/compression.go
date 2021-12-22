@@ -33,9 +33,7 @@ func (lib *Library) compressionWorker() {
 					isNotifierBased:  true,
 					fileRemoved:      true,
 				}
-				if lib.running {
-					lib.fileScanRequests <- event
-				}
+				lib.fileScanRequests <- event
 			}
 			//Figure out the output file path
 			newpath := request[0:len(request)-1] + "z"
@@ -47,9 +45,7 @@ func (lib *Library) compressionWorker() {
 					isNotifierBased:  true,
 					fileRemoved:      false,
 				}
-				if lib.running {
-					lib.fileScanRequests <- event
-				}
+				lib.fileScanRequests <- event
 			}
 
 		}
