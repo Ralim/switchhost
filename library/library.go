@@ -120,8 +120,8 @@ func (lib *Library) Start() error {
 }
 
 func (lib *Library) Stop() {
-	log.Info().Msg("Library closing")
 	lib.running = false
+	log.Info().Msg("Library closing")
 	//Order matters here a bit since we have a mild circular loop around the central organiser
 	// We want to stop (a) All scanning and (b) compression and cleanup _first_
 	// Then wind down the main organiser thread
@@ -151,8 +151,9 @@ func (lib *Library) fileWatcherWorker() {
 						isNotifierBased:  true,
 						fileRemoved:      true,
 					}
-					lib.fileScanRequests <- event
-
+					if lib.running {
+						lib.fileScanRequests <- event
+					}
 				} else {
 					if err := lib.ScanFolder(change.Path); err == nil {
 						lib.folderCleanupRequests <- change.Path
@@ -171,7 +172,9 @@ func (lib *Library) fileWatcherWorker() {
 				case watcher.Remove:
 					event.fileRemoved = true
 				}
-				lib.fileScanRequests <- event
+				if lib.running {
+					lib.fileScanRequests <- event
+				}
 			}
 		case err := <-lib.fileWatcher.Error:
 			log.Error().Err(err)
