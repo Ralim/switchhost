@@ -2,7 +2,6 @@ package settings
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	stdlog "log"
 	"os"
@@ -41,6 +40,9 @@ type Settings struct {
 	AllowAnonHTTP       bool       `json:"allowAnonHTTP"`          // Allow anon (open to public) HTTP
 	Users               []AuthUser `json:"users"`                  // User accounts
 	JSONLocations       []string   `json:"jsonLocations"`          // Extra locations to add to locations field in json for backup instances
+	NSZCommandLine      string     `json:"NSZCommandLine"`         // Base command line used to run NSZ
+	CompressionEnabled  bool       `json:"compressionEnabled"`     // Should files be converted to their compressed verions
+
 	// Private
 	filePath string
 	logFile  *os.File
@@ -53,18 +55,20 @@ func NewSettings(path string) *Settings {
 	settings := &Settings{
 		filePath:            path,
 		PreferredLangOrder:  []int{1, 0},
-		FoldersToScan:       []string{"./incoming_files"},
-		JSONLocations:       []string{},
-		StorageFolder:       "./game_library",
-		CacheFolder:         "/tmp/",
-		EnableSorting:       false, // default "safe"
-		CleanupEmptyFolders: true,  // Relatively safe
-		HTTPPort:            8080,
-		FTPPort:             2121,
-		ServerMOTD:          "Switchroot",
-		LogLevel:            1,  //Info
-		LogFilePath:         "", // No log file
+		FoldersToScan:       []string{"./incoming_files"}, // Search locations
+		JSONLocations:       []string{},                   // Locations in the json to point to backup instances
+		StorageFolder:       "./game_library",             // Storage location
+		CacheFolder:         "/tmp/",                      // Where to cache downloaded files to (titledb)
+		EnableSorting:       false,                        // default "safe"
+		CleanupEmptyFolders: true,                         // Relatively safe
+		HTTPPort:            8080,                         // Ports
+		FTPPort:             2121,                         // Ports
+		ServerMOTD:          "Switchroot",                 // MOTD to include in the json file
+		LogLevel:            1,                            // Info
+		LogFilePath:         "",                           // No log file
 		OrganisationFormat:  "{TitleName}/{TitleName} {Type} {VersionDec} [{TitleID}][{Version}]",
+		NSZCommandLine:      "nsz --verify -w -C -p -t 4 --rm-source ",
+		CompressionEnabled:  false,
 		PreferCompressed:    true,
 		PreferXCI:           false,
 		UploadingAllowed:    false,
@@ -94,7 +98,7 @@ func NewSettings(path string) *Settings {
 	settings.Save()
 	// Setup the logging
 	settings.setupLogging()
-	log.Info().Msg("Settings Loaded")
+	log.Info().Msg("Settings loaded, merged and saved")
 	return settings
 }
 
@@ -105,19 +109,18 @@ func (s *Settings) Load() {
 		return
 	}
 	if err := json.Unmarshal(data, s); err != nil {
-		log.Warn().Msgf("Couldn't load settings -> %v", err)
+		log.Warn().Err(err).Msg("Couldn't load settings")
 	}
 }
 
 func (s *Settings) Save() {
 	data, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Couldn't save settings - %v", err)
+		log.Warn().Err(err).Msg("Couldn't save settings - JSONification")
 		return
 	}
-	err = ioutil.WriteFile(s.filePath, data, 0666)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Couldn't save settings - %v", err)
+	if err = ioutil.WriteFile(s.filePath, data, 0666); err != nil {
+		log.Warn().Err(err).Msg("Couldn't save settings - writing file")
 	}
 }
 

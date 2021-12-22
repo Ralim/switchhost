@@ -23,6 +23,7 @@ const (
 )
 
 func (lib *Library) fileScanningWorker() {
+	defer lib.waitgroupOrganiser.Done()
 	// This worker thread listens on the channel for notification of any files that should be checked
 	// Single threaded to prevent any race issues
 
@@ -37,42 +38,46 @@ func (lib *Library) fileScanningWorker() {
 			log.Info().Msg("Initial startup scan is complete")
 		} else if event.fileRemoved {
 
-			// Scan the list of known files and check if the path matches
-			if oldPath, err := filepath.Abs(event.path); err == nil {
-				log.Info().Str("path", oldPath).Msg("Delete event")
-				for key, item := range lib.filesKnown {
-					items := item.GetFiles()
-					match := false
-					for _, item := range items {
-						if item.Path == oldPath {
-							//This one is a match
-							match = true
-						} else if strings.HasPrefix(item.Path, oldPath) {
-							match = true
-						}
-					}
-					if match {
-						//Dump the old record, requeue all files
-						log.Info().Str("path", oldPath).Msg("Deleted path matched, rescanning")
-						delete(lib.filesKnown, key)
-						for _, item := range items {
-							event := &scanRequest{
-								path:             item.Path,
-								isEndOfStartScan: false,
-								isNotifierBased:  true,
-							}
-							lib.fileScanRequests <- event
-						}
-						return
-					}
-				}
-			}
+			lib.sortFileHandleRemoved(event)
 		} else {
 			lib.sortFileHandleScan(event)
 		}
 	}
+	log.Info().Msg("Organisation task exiting")
 }
+func (lib *Library) sortFileHandleRemoved(event *scanRequest) {
 
+	// Scan the list of known files and check if the path matches
+	if oldPath, err := filepath.Abs(event.path); err == nil {
+		log.Info().Str("path", oldPath).Msg("Delete event")
+		for key, item := range lib.filesKnown {
+			items := item.GetFiles()
+			match := false
+			for _, item := range items {
+				if item.Path == oldPath {
+					//This one is a match
+					match = true
+				} else if strings.HasPrefix(item.Path, oldPath) {
+					match = true
+				}
+			}
+			if match {
+				//Dump the old record, requeue all files
+				log.Info().Str("path", oldPath).Msg("Deleted path matched, rescanning")
+				delete(lib.filesKnown, key)
+				for _, item := range items {
+					event := &scanRequest{
+						path:             item.Path,
+						isEndOfStartScan: false,
+						isNotifierBased:  true,
+					}
+					lib.fileScanRequests <- event
+				}
+				return
+			}
+		}
+	}
+}
 func (lib *Library) sortFileHandleScan(event *scanRequest) {
 	log.Debug().Str("path", event.path).Bool("isNotifier", event.isNotifierBased).Msg("Scan request")
 	if event.mustCleanupFile {
@@ -80,6 +85,10 @@ func (lib *Library) sortFileHandleScan(event *scanRequest) {
 		defer os.Remove(event.path)
 	}
 	if requestedPath, err := filepath.Abs(event.path); err == nil {
+		//Dont bother wasting time on files that no longer exist
+		if !utilities.Exists(requestedPath) {
+			return
+		}
 		//For now limited to having to use keys to read files, TODO: Regex the deets out of the file name
 		if lib.keys != nil {
 			log.Debug().Str("path", requestedPath).Msg("Starting requested scan")
@@ -97,14 +106,27 @@ func (lib *Library) sortFileHandleScan(event *scanRequest) {
 					Name:    info.EmbeddedTitle,
 					Size:    info.Size,
 				}
-				gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID)
-				if err == nil {
+				if gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID); err == nil {
 					record.Name = gameTitle
 				}
 
 				lib.AddFileRecord(record)
+				lib.postFileAddToLibraryHooks(record)
 			}
 			log.Debug().Str("path", requestedPath).Msg("Finished scan")
+		}
+	}
+}
+
+func (lib *Library) postFileAddToLibraryHooks(file *FileOnDiskRecord) {
+	//Dispatch any post hooks
+	if lib.settings.CompressionEnabled {
+		extension := strings.ToLower(path.Ext(file.Path))
+		if len(extension) == 4 {
+			if extension[3] != 'z' {
+				//File might be compressable, send it off
+				lib.fileCompressionRequests <- file.Path
+			}
 		}
 	}
 }

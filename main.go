@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/signal"
 	"path"
 
 	"github.com/ralim/switchhost/library"
@@ -26,7 +27,17 @@ func main() {
 	}
 
 	server := server.NewServer(lib, Titles, settings)
+
 	server.Run()
+	SignalChannel := make(chan os.Signal, 1)
+
+	signal.Notify(SignalChannel, os.Interrupt)
+
+	<-SignalChannel
+	log.Warn().Msg("Ctrl-c pressed, closing up")
+	server.Stop() // stop the servers
+	lib.Stop()    // wait for library to close down
+
 }
 
 func tryAndLoadKeys(lib *library.Library) {

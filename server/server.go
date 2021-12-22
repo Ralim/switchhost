@@ -1,6 +1,9 @@
 package server
 
 import (
+	"context"
+	"net/http"
+
 	"github.com/ralim/switchhost/library"
 	"github.com/ralim/switchhost/server/virtualftp"
 	"github.com/ralim/switchhost/settings"
@@ -16,6 +19,9 @@ type Server struct {
 	webui    *webui.WebUI
 	settings *settings.Settings
 	titledb  *titledb.TitlesDB
+
+	httpServer *http.Server
+	ftpServer  *virtualftp.FTPServer
 }
 
 func NewServer(lib *library.Library, titledb *titledb.TitlesDB, settings *settings.Settings) *Server {
@@ -30,7 +36,19 @@ func NewServer(lib *library.Library, titledb *titledb.TitlesDB, settings *settin
 func (server *Server) Run() {
 	log.Info().Msg("Starting servers")
 
-	go virtualftp.StartFTP(server.library, server.settings)
-	server.StartHTTP()
+	server.ftpServer = virtualftp.CreateVirtualFTP(server.library, server.settings)
+	go server.StartHTTP()
+	go server.ftpServer.Start()
 
+}
+
+func (server *Server) Stop() {
+	if server.httpServer != nil {
+		server.httpServer.Shutdown(context.Background())
+		log.Info().Msg("HTTP task exiting")
+	}
+	if server.ftpServer != nil {
+		server.ftpServer.Stop()
+		log.Info().Msg("FTP task exiting")
+	}
 }
