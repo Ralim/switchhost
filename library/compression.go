@@ -13,7 +13,7 @@ import (
 
 func (lib *Library) compressionWorker() {
 	//Dequeue any requests off the queue and run the compression
-
+	defer lib.waitgroup.Done()
 	for request := range lib.fileCompressionRequests {
 		//For each requested file, run it through NSZ and check output
 		log.Info().Str("path", request).Msg("Starting compression")
@@ -50,6 +50,7 @@ func (lib *Library) compressionWorker() {
 
 		}
 	}
+	log.Info().Msg("Compression task exiting")
 }
 
 func (lib *Library) NSZCompressFile(path string) error {

@@ -21,7 +21,11 @@ import (
 
 var ErrNotAllowed error = errors.New("not allowed")
 
-func StartFTP(lib *library.Library, settings *settings.Settings) {
+type FTPServer struct {
+	server *ftpserver.Server
+}
+
+func CreateVirtualFTP(lib *library.Library, settings *settings.Settings) *FTPServer {
 	driver := NewDriver(lib, settings)
 	perm := ftpserver.NewSimplePerm("switch", "switch")
 	opt := &ftpserver.Options{
@@ -37,10 +41,19 @@ func StartFTP(lib *library.Library, settings *settings.Settings) {
 	if err != nil {
 		log.Error().Err(err).Msg("FTP server creation failed")
 	}
+	return &FTPServer{server: ftpServer}
 
-	err = ftpServer.ListenAndServe()
+}
+
+func (ftp *FTPServer) Start() {
+	err := ftp.server.ListenAndServe()
 	if err != nil {
 		log.Error().Err(err).Msg("FTP server start failed")
+	}
+}
+func (ftp *FTPServer) Stop() {
+	if ftp.server != nil {
+		_ = ftp.server.Shutdown()
 	}
 }
 

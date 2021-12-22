@@ -43,11 +43,13 @@ func (server *Server) StartHTTP() {
 
 	// Here is your final handleS
 	h := c.Then(server)
-	http.Handle("/", h)
-
-	if err := (http.ListenAndServe(fmt.Sprintf(":%d", server.settings.HTTPPort), nil)); err != nil {
-		log.Fatal().Err(err).Msg("Startup failed")
+	server.httpServer = &http.Server{Addr: fmt.Sprintf(":%d", server.settings.HTTPPort), Handler: h}
+	if err := server.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Error().Err(err).Msg("HTTP server closed")
+	} else {
+		log.Info().Msg("HTTP server closed")
 	}
+
 }
 
 func (server *Server) httpHandleJSON(respWriter http.ResponseWriter, r *http.Request) {

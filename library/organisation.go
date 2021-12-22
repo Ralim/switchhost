@@ -23,6 +23,7 @@ const (
 )
 
 func (lib *Library) fileScanningWorker() {
+	defer lib.waitgroupOrganiser.Done()
 	// This worker thread listens on the channel for notification of any files that should be checked
 	// Single threaded to prevent any race issues
 
@@ -42,6 +43,7 @@ func (lib *Library) fileScanningWorker() {
 			lib.sortFileHandleScan(event)
 		}
 	}
+	log.Info().Msg("Organisation task exiting")
 }
 func (lib *Library) sortFileHandleRemoved(event *scanRequest) {
 

@@ -3,6 +3,7 @@ package library
 import (
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/ralim/switchhost/settings"
@@ -56,7 +57,9 @@ func TestCompressionWorker(t *testing.T) {
 		settings:                &sett,
 		fileCompressionRequests: make(chan string),
 		fileScanRequests:        make(chan *scanRequest),
+		waitgroup:               &sync.WaitGroup{},
 	}
+	lib.waitgroup.Add(1)
 
 	defer close(lib.fileCompressionRequests)
 	defer close(lib.fileScanRequests)

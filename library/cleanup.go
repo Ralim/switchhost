@@ -13,6 +13,7 @@ import (
 // This is messy, and open to ideas
 
 func (lib *Library) cleanupFolderWorker() {
+	defer lib.waitgroup.Done()
 	for cleanupPath := range lib.folderCleanupRequests {
 		if lib.settings.CleanupEmptyFolders {
 			//need to check that this folder is inside one of the search folders && its not _the_ search folder
@@ -33,6 +34,7 @@ func (lib *Library) cleanupFolderWorker() {
 			}
 		}
 	}
+	log.Info().Msg("Cleanup task exiting")
 }
 
 func recursivelyCheckForEmptyFolders(pathin string) {

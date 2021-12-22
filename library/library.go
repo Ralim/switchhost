@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/radovskyb/watcher"
@@ -26,28 +27,35 @@ type scanRequest struct {
 // Library manages the representation of the game files on disk + their metadata
 type Library struct {
 	//Privates
-	keys       *keystore.Keystore
-	settings   *settings.Settings
-	filesKnown map[uint64]TitleOnDiskCollection
-	//Organisation
-	titledb *titledb.TitlesDB
+	keys     *keystore.Keystore
+	settings *settings.Settings
+	titledb  *titledb.TitlesDB
 
+	filesKnown map[uint64]TitleOnDiskCollection
+
+	waitgroup               *sync.WaitGroup
+	waitgroupOrganiser      *sync.WaitGroup
 	fileScanRequests        chan *scanRequest
 	folderCleanupRequests   chan string
 	fileCompressionRequests chan string
+	exitRequest             chan bool
 	fileWatcher             *watcher.Watcher
 }
 
 func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings) *Library {
 	library := &Library{
-
+		titledb:  titledb,
+		settings: settings,
+		// Channels
 		fileScanRequests:        make(chan *scanRequest, 32),
 		folderCleanupRequests:   make(chan string, 128),
 		fileCompressionRequests: make(chan string, 128),
-		titledb:                 titledb,
-		settings:                settings,
+		exitRequest:             make(chan bool),
 		filesKnown:              make(map[uint64]TitleOnDiskCollection),
-		fileWatcher:             watcher.New(),
+		// Internal objects
+		fileWatcher:        watcher.New(),
+		waitgroup:          &sync.WaitGroup{},
+		waitgroupOrganiser: &sync.WaitGroup{},
 	}
 
 	library.fileWatcher.FilterOps(watcher.Create, watcher.Move, watcher.Remove, watcher.Rename)
@@ -84,27 +92,50 @@ func (lib *Library) Start() error {
 
 	}
 	// Start worker thread for handling file parsing
+	lib.waitgroupOrganiser.Add(1)
 	go lib.fileScanningWorker()
 	// Run first file scan in background
+	lib.waitgroup.Add(1)
 	go lib.RunScan()
 	// Start worker for cleaning up empty folders
+	lib.waitgroup.Add(1)
 	go lib.cleanupFolderWorker()
 	// Start worker for nsz compression
+	lib.waitgroup.Add(1)
 	go lib.compressionWorker()
 	// Start worker that manages files being deleted
-
+	lib.waitgroup.Add(1)
 	go func() {
-		if err := lib.fileWatcher.Start(time.Minute * 30); err != nil {
+		defer lib.waitgroup.Done()
+		if err := lib.fileWatcher.Start(time.Minute); err != nil {
 			log.Warn().Err(err).Msg("File watcher could not be started")
 		}
 
 	}()
 	//Trivial map from watcher into the pendings list
+	lib.waitgroup.Add(1)
 	go lib.fileWatcherWorker()
 	return nil
 }
 
+func (lib *Library) Stop() {
+	log.Info().Msg("Library closing")
+	//Order matters here a bit since we have a mild circular loop around the central organiser
+	// We want to stop (a) All scanning and (b) compression and cleanup _first_
+	// Then wind down the main organiser thread
+
+	lib.fileWatcher.Close()            // Stops any new file changes coming in, and makes its two goroutines exit
+	close(lib.fileCompressionRequests) // causes compression to pack up
+	close(lib.folderCleanupRequests)   // Will cause cleanup to exit
+
+	//Compression _may_ send results back to the organiser, so we want to wait for compression to finish _before_ we stop organiser
+	lib.waitgroup.Wait()
+
+	close(lib.fileScanRequests)
+	lib.waitgroupOrganiser.Wait()
+}
 func (lib *Library) fileWatcherWorker() {
+	defer lib.waitgroup.Done()
 	for {
 		select {
 		case change := <-lib.fileWatcher.Event:
@@ -150,6 +181,7 @@ func (lib *Library) fileWatcherWorker() {
 
 // RunScan runs a scan of all "normal" scan folders
 func (lib *Library) RunScan() {
+	defer lib.waitgroup.Done()
 	for _, folder := range lib.settings.GetAllScanFolders() {
 		if err := lib.ScanFolder(folder); err == nil {
 			lib.folderCleanupRequests <- folder
