@@ -121,6 +121,7 @@ func (lib *Library) Start() error {
 
 func (lib *Library) Stop() {
 	log.Info().Msg("Library closing")
+	lib.running = false
 	//Order matters here a bit since we have a mild circular loop around the central organiser
 	// We want to stop (a) All scanning and (b) compression and cleanup _first_
 	// Then wind down the main organiser thread
