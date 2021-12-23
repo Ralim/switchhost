@@ -81,12 +81,9 @@ func (lib *Library) NSZCompressFile(path string) error {
 	}
 	cleanedParts = append(cleanedParts, path)
 	cmd := exec.Command(cleanedParts[0], cleanedParts[1:]...)
-	err := cmd.Run()
+	byteData, err := cmd.CombinedOutput()
 	if err != nil {
-		outputLog := ""
-		if byteData, err2 := cmd.CombinedOutput(); err2 == nil {
-			outputLog = string(byteData)
-		}
+		outputLog := string(byteData)
 		log.Error().Err(err).Str("output", outputLog).Msg("NSZ compression failed")
 		return err
 	}
