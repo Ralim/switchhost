@@ -1,6 +1,7 @@
 package library
 
 import (
+	"os"
 	"os/exec"
 	"strings"
 
@@ -26,6 +27,15 @@ func (lib *Library) compressionWorker() {
 			err := lib.NSZCompressFile(request)
 			if err != nil {
 				log.Err(err).Msg("NSZ compression failed")
+				//Cleanup output if it made one
+				if len(request) > 3 {
+					newpath := request[0:len(request)-1] + "z"
+					if utilities.Exists(newpath) {
+						if err := os.Remove(newpath); err != nil {
+							log.Error().Err(err).Msg("cleanup output from failing NSZ failed")
+						}
+					}
+				}
 			} else {
 				log.Info().Str("path", request).Msg("Compression complete")
 				// Check if the source file has been deleted
@@ -71,6 +81,15 @@ func (lib *Library) NSZCompressFile(path string) error {
 	}
 	cleanedParts = append(cleanedParts, path)
 	cmd := exec.Command(cleanedParts[0], cleanedParts[1:]...)
-	return cmd.Run()
+	err := cmd.Run()
+	if err != nil {
+		outputLog := ""
+		if byteData, err2 := cmd.CombinedOutput(); err2 == nil {
+			outputLog = string(byteData)
+		}
+		log.Error().Err(err).Str("output", outputLog).Msg("NSZ compression failed")
+		return err
+	}
+	return nil
 
 }
