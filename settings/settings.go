@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	stdlog "log"
 	"os"
+	"strings"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -96,6 +97,8 @@ func NewSettings(path string) *Settings {
 	}
 	// Load the settings file if it exsts, which will override the defaults above if specified
 	settings.Load()
+	// Clean up paths
+	settings.cleanpaths()
 	// Save to preserve if we have added anything to the file, and drop no-longer used settings for clarity
 	settings.Save()
 	// Setup the logging
@@ -162,4 +165,15 @@ func (s *Settings) setupLogging() {
 		log.Info().Msg("Started logging to file")
 
 	}
+}
+
+func (s *Settings) cleanpaths() {
+	//Since users may make mistakes and start or end the paths with a string, clean all of these up
+	s.TempFilesFolder = strings.TrimSpace(s.TempFilesFolder)
+	s.StorageFolder = strings.TrimSpace(s.StorageFolder)
+	s.CacheFolder = strings.TrimSpace(s.CacheFolder)
+	for i, v := range s.FoldersToScan {
+		s.FoldersToScan[i] = strings.TrimSpace(v)
+	}
+
 }
