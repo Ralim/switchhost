@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -85,8 +86,9 @@ func (lib *Library) sortFileHandleRemoved(event *scanRequest) {
 		}
 	}
 }
+
 func (lib *Library) sortFileHandleScan(event *scanRequest) {
-	log.Info().Str("path", event.path).Bool("isNotifier", event.isNotifierBased).Msg("Scan request")
+	log.Debug().Str("path", event.path).Bool("isNotifier", event.isNotifierBased).Msg("Scan request")
 	if event.mustCleanupFile {
 		//We dont care if this fails because file doesnt exist, that just means it was cleaned up
 		defer os.Remove(event.path)
@@ -94,6 +96,10 @@ func (lib *Library) sortFileHandleScan(event *scanRequest) {
 	if requestedPath, err := filepath.Abs(event.path); err == nil {
 		//Dont bother wasting time on files that no longer exist
 		if !utilities.Exists(requestedPath) {
+			return
+		}
+		if !lib.validateFile(requestedPath) {
+			log.Info().Str("path", requestedPath).Msg("File failed valiation, not putting in library")
 			return
 		}
 		//For now limited to having to use keys to read files, TODO: Regex the deets out of the file name
@@ -137,6 +143,37 @@ func (lib *Library) postFileAddToLibraryHooks(file *FileOnDiskRecord) {
 			}
 		}
 	}
+}
+
+func (lib *Library) validateFile(filepath string) bool {
+	//Returns false if file fails validation, true if good or uncertain
+
+	if len(lib.settings.HactoolPath) == 0 {
+		return true // cant check
+	}
+	ext := strings.ToLower(path.Ext(filepath))
+	if len(ext) == 3 {
+
+		args := []string{"-t"}
+		if ext[0:3] == ".ns" {
+			args = append(args, "pfs0")
+		} else if ext[0:3] == ".xc" {
+			args = append(args, "xci")
+		} else {
+			return true // can't validate
+		}
+		cmd := exec.Command(lib.settings.HactoolPath, args...)
+		byteData, err := cmd.CombinedOutput()
+		if err != nil {
+			outputLog := string(byteData)
+			log.Error().Err(err).Str("path", filepath).Str("output", outputLog).Msg("File validation failed")
+			return false
+		}
+		return true
+
+	}
+	return true
+
 }
 
 // sortFileIfApplicable; if sorting is on, attempts to sort the file to the new path if its different.

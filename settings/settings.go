@@ -26,7 +26,7 @@ type Settings struct {
 	HTTPPort            int        `json:"httpPort"`               // Port used for HTTP
 	FTPPort             int        `json:"ftpPort"`                // Port used for FTP
 	StorageFolder       string     `json:"storageFolder"`          // Where sorted files are stored to
-	CacheFolder         string     `json:"cacheFolder"`            // Folder to cache downloads and other temp files, if preserved will avoid re-downloads. Can be temp tho
+	CacheFolder         string     `json:"cacheFolder"`            // Folder to cache downloads and other temp files, if preserved will avoid re-downloads. Can be /tmp/ though
 	OrganisationFormat  string     `json:"organisationFormat"`     // Organisation format string
 	EnableSorting       bool       `json:"enableSorting"`          // If sorting should be performed
 	CleanupEmptyFolders bool       `json:"cleanupEmptyFolders"`    // Should we cleanup empty folders in the search and storage paths
@@ -43,7 +43,8 @@ type Settings struct {
 	JSONLocations       []string   `json:"jsonLocations"`          // Extra locations to add to locations field in json for backup instances
 	NSZCommandLine      string     `json:"NSZCommandLine"`         // Base command line used to run NSZ
 	CompressionEnabled  bool       `json:"compressionEnabled"`     // Should files be converted to their compressed verions
-	TempFilesFolder     string     `json:"tempFilesFolder"`        // Temporary files
+	TempFilesFolder     string     `json:"tempFilesFolder"`        // Temporary file storage location for FTP uploads
+	HactoolPath         string     `json:"HactoolPath"`            // Command line that is run on a file to validate the file is "intact"
 
 	// Private
 	filePath string
@@ -57,28 +58,29 @@ func NewSettings(path string) *Settings {
 	settings := &Settings{
 		filePath:            path,
 		PreferredLangOrder:  []int{1, 0},
-		FoldersToScan:       []string{"./incoming_files"}, // Search locations
-		JSONLocations:       []string{},                   // Locations in the json to point to backup instances
-		StorageFolder:       "./game_library",             // Storage location
-		CacheFolder:         "/tmp/",                      // Where to cache downloaded files to (titledb)
-		EnableSorting:       false,                        // default "safe"
-		CleanupEmptyFolders: true,                         // Relatively safe
-		HTTPPort:            8080,                         // Ports
-		FTPPort:             2121,                         // Ports
-		ServerMOTD:          "Switchroot",                 // MOTD to include in the json file
-		LogLevel:            1,                            // Info
-		LogFilePath:         "",                           // No log file
-		OrganisationFormat:  "{TitleName}/{TitleName} {Type} {VersionDec} [{TitleID}][{Version}]",
-		NSZCommandLine:      "nsz --verify -w -C -p -t 4 --rm-source ",
-		CompressionEnabled:  false,
-		PreferCompressed:    true,
-		PreferXCI:           false,
-		UploadingAllowed:    false,
-		Deduplicate:         false,
-		AllowAnonFTP:        false,
-		AllowAnonHTTP:       false,
-		logFile:             nil,
-		TempFilesFolder:     "",
+		FoldersToScan:       []string{"./incoming_files"},                                         // Search locations
+		JSONLocations:       []string{},                                                           // Locations in the json to point to backup instances
+		StorageFolder:       "./game_library",                                                     // Storage location
+		CacheFolder:         "/tmp/",                                                              // Where to cache downloaded files to (titledb)
+		EnableSorting:       false,                                                                // default "safe"
+		CleanupEmptyFolders: true,                                                                 // Relatively safe
+		HTTPPort:            8080,                                                                 // Ports
+		FTPPort:             2121,                                                                 // Ports
+		ServerMOTD:          "Switchroot",                                                         // MOTD to include in the json file
+		LogLevel:            1,                                                                    // Info
+		LogFilePath:         "",                                                                   // No log file
+		OrganisationFormat:  "{TitleName}/{TitleName} {Type} {VersionDec} [{TitleID}][{Version}]", // Path used for organising files
+		NSZCommandLine:      "nsz --verify -w -C -p -t 4 --rm-source ",                            // NSZ command used for file compression
+		HactoolPath:         "hactool",                                                            // Path to hactool for integrity checking
+		CompressionEnabled:  false,                                                                // Should files be compressed using NSZ
+		PreferCompressed:    true,                                                                 // Should compressed files be preferred over non-compressed on duplicate
+		PreferXCI:           false,                                                                // Should XCI files be preferred over nsp on duplicate
+		UploadingAllowed:    false,                                                                // Should FTP allow file uploads
+		Deduplicate:         false,                                                                // Should the software delete duplicate files
+		AllowAnonFTP:        false,                                                                // Should anon users be allowed FTP access
+		AllowAnonHTTP:       false,                                                                // Should anon users be allowed HTTP access
+		logFile:             nil,                                                                  // Optional path to a file to log to
+		TempFilesFolder:     "/tmp",                                                               // Temp files location used for staging FTP uploads
 		//Add a demo account
 		Users: []AuthUser{
 			{
