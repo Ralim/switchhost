@@ -169,6 +169,7 @@ func (lib *Library) validateFile(filepath string) bool {
 			log.Error().Err(err).Str("path", filepath).Str("output", outputLog).Msg("File validation failed")
 			return false
 		}
+		log.Info().Str("path", filepath).Msg("File validation ok")
 		return true
 
 	}
