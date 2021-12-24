@@ -162,6 +162,7 @@ func (lib *Library) validateFile(filepath string) bool {
 		} else {
 			return true // can't validate
 		}
+		args = append(args, filepath)
 		cmd := exec.Command(lib.settings.HactoolPath, args...)
 		byteData, err := cmd.CombinedOutput()
 		if err != nil {
@@ -169,7 +170,7 @@ func (lib *Library) validateFile(filepath string) bool {
 			log.Error().Err(err).Str("path", filepath).Str("output", outputLog).Msg("File validation failed")
 			return false
 		}
-		log.Info().Str("path", filepath).Msg("File validation ok")
+		log.Debug().Str("path", filepath).Msg("File validation ok")
 		return true
 
 	}
