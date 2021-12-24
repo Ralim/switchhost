@@ -99,7 +99,15 @@ func (lib *Library) sortFileHandleScan(event *scanRequest) {
 			return
 		}
 		if !lib.validateFile(requestedPath) {
-			log.Info().Str("path", requestedPath).Msg("File failed valiation, not putting in library")
+
+			if lib.settings.DeleteValidationFails {
+				log.Warn().Str("path", requestedPath).Msg("File failed valiation, deleting file")
+				if err := os.Remove(requestedPath); err != nil {
+					log.Error().Str("path", requestedPath).Msg("File failed valiation, deleting file, but it failed")
+				}
+			} else {
+				log.Warn().Str("path", requestedPath).Msg("File failed valiation, not putting in library")
+			}
 			return
 		}
 		//For now limited to having to use keys to read files, TODO: Regex the deets out of the file name
