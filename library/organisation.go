@@ -152,7 +152,7 @@ func (lib *Library) validateFile(filepath string) bool {
 		return true // cant check
 	}
 	ext := strings.ToLower(path.Ext(filepath))
-	if len(ext) == 3 {
+	if len(ext) == 4 {
 
 		args := []string{"-t"}
 		if ext[0:3] == ".ns" {
