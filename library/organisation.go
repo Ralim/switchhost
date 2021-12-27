@@ -201,7 +201,7 @@ func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath
 	}
 	newPath, err := lib.determineIdealFilePath(infoInfo, currentPath)
 	if err != nil {
-		log.Warn().Msgf("Cant sort file %s due to error %v", currentPath, err)
+		log.Warn().Err(err).Str("path", currentPath).Msg("Determining ideal path failed")
 		return currentPath
 	}
 	if err == nil {
@@ -209,7 +209,7 @@ func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath
 			log.Debug().Str("oldPath", currentPath).Str("newPath", newPath).Msg("Attempting move")
 			err := os.MkdirAll(path.Dir(newPath), 0755)
 			if err != nil {
-				log.Warn().Msgf("Could not move %s to %s, due to err %v", currentPath, newPath, err)
+				log.Warn().Str("oldPath", currentPath).Str("newPath", newPath).Err(err).Msg("Moving file raised error")
 			} else {
 				//Check if file exists already, if it does then only overwrite if dedupe is on
 				if _, err := os.Stat(newPath); err == nil {
@@ -221,7 +221,7 @@ func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath
 				}
 				err = utilities.RenameFile(currentPath, newPath)
 				if err != nil {
-					log.Warn().Msgf("Could not move %s to %s, due to err %v", currentPath, newPath, err)
+					log.Warn().Str("oldPath", currentPath).Str("newPath", newPath).Err(err).Msg("Moving file raised error")
 				} else {
 					log.Info().Str("oldPath", currentPath).Str("newPath", newPath).Msg("Done moving")
 					//Push the folder to the cleanup path
@@ -265,7 +265,7 @@ func (lib *Library) getFileInfo(sourceFile string) (*formats.FileInfo, error) {
 		return nil, fmt.Errorf("could not determine sorted path for %s due to error %w during file parsing", sourceFile, err)
 	}
 	if len(info.EmbeddedTitle) == 0 && info.Type != cnmt.DLC {
-		log.Warn().Msgf("Parsing embedded title failed for file %s", sourceFile)
+		log.Warn().Str("file", sourceFile).Msg("Parsing embedded title failed")
 	}
 	fileStat, err := file.Stat()
 	if err == nil {

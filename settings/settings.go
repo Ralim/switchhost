@@ -46,6 +46,7 @@ type Settings struct {
 	TempFilesFolder       string     `json:"tempFilesFolder"`        // Temporary file storage location for FTP uploads
 	HactoolPath           string     `json:"HactoolPath"`            // Command line that is run on a file to validate the file is "intact"
 	DeleteValidationFails bool       `json:"deleteValidationFails"`  // If a file fails validation, should it be deleted
+
 	// Private
 	filePath string
 	logFile  *os.File
@@ -157,7 +158,7 @@ func (s *Settings) setupLogging() {
 		//Setup a mirror of the log to the specified file
 		logfile, err := os.OpenFile(s.LogFilePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
 		if err != nil {
-			log.Warn().Msgf("Couldn't open log file %s for writing - %v", s.LogFilePath, err)
+			log.Warn().Str("file", s.LogFilePath).Err(err).Msg("Couldn't open log file for writing")
 			return
 		}
 		s.logFile = logfile

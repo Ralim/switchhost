@@ -65,7 +65,7 @@ func (db *TitlesDB) UpdateTitlesDB() {
 	for _, fileURL := range db.settings.TitlesDBURLs {
 		path, err := utilities.DownloadFileWithVersioning(fileURL, db.settings.CacheFolder)
 		if err != nil {
-			log.Warn().Msgf("Downloading latest TitlesDB failed, will continue using cached - %v", err)
+			log.Warn().Err(err).Msg("Downloading latest TitlesDB failed, will continue using cached")
 		}
 		if err := db.injestTitleDBFile(path); err != nil {
 			log.Error().Err(err).Str("url", fileURL).Msg("TitleDB couldn't parse downloaded data")
@@ -86,7 +86,7 @@ func (db *TitlesDB) injestTitleDBFile(path string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse the Titledb - %w", err)
 	}
-	log.Info().Msgf("Loading %d entries from %s", len(entries), path)
+	log.Info().Str("path", path).Int("entries", len(entries)).Msg("Loading entries")
 	//Have to insert all entries into the map with update
 	db.entriesLock.Lock()
 	defer db.entriesLock.Unlock()
