@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -23,7 +24,8 @@ const (
 )
 
 func (lib *Library) fileScanningWorker() {
-	defer lib.waitgroupOrganiser.Done()
+	defer lib.waitgroup.Done()
+	defer log.Info().Msg("Organisation task exiting")
 	// This worker thread listens on the channel for notification of any files that should be checked
 	// Single threaded to prevent any race issues
 
@@ -33,17 +35,23 @@ func (lib *Library) fileScanningWorker() {
 	// 3. Update our in ram db to the file existance :)
 	// 4. If the containing folder is now empty, remove it
 
-	for event := range lib.fileScanRequests {
-		if event.isEndOfStartScan {
-			log.Info().Msg("Initial startup scan is complete")
-		} else if event.fileRemoved {
+	for {
+		select {
+		case <-lib.exit:
+			lib.exit <- true
+			return
+		case event := <-lib.fileScanRequests:
+			if event.isEndOfStartScan {
+				log.Info().Msg("Initial startup scan is complete")
+			} else if event.fileRemoved {
+				lib.sortFileHandleRemoved(event)
+			} else {
+				lib.sortFileHandleScan(event)
+			}
 
-			lib.sortFileHandleRemoved(event)
-		} else {
-			lib.sortFileHandleScan(event)
 		}
 	}
-	log.Info().Msg("Organisation task exiting")
+
 }
 func (lib *Library) sortFileHandleRemoved(event *scanRequest) {
 
@@ -71,15 +79,14 @@ func (lib *Library) sortFileHandleRemoved(event *scanRequest) {
 						isEndOfStartScan: false,
 						isNotifierBased:  true,
 					}
-					if lib.running {
-						lib.fileScanRequests <- event
-					}
+					lib.fileScanRequests <- event
 				}
 				return
 			}
 		}
 	}
 }
+
 func (lib *Library) sortFileHandleScan(event *scanRequest) {
 	log.Debug().Str("path", event.path).Bool("isNotifier", event.isNotifierBased).Msg("Scan request")
 	if event.mustCleanupFile {
@@ -89,6 +96,18 @@ func (lib *Library) sortFileHandleScan(event *scanRequest) {
 	if requestedPath, err := filepath.Abs(event.path); err == nil {
 		//Dont bother wasting time on files that no longer exist
 		if !utilities.Exists(requestedPath) {
+			return
+		}
+		if !lib.validateFile(requestedPath) {
+
+			if lib.settings.DeleteValidationFails {
+				log.Warn().Str("path", requestedPath).Msg("File failed valiation, deleting file")
+				if err := os.Remove(requestedPath); err != nil {
+					log.Error().Str("path", requestedPath).Msg("File failed valiation, deleting file, but it failed")
+				}
+			} else {
+				log.Warn().Str("path", requestedPath).Msg("File failed valiation, not putting in library")
+			}
 			return
 		}
 		//For now limited to having to use keys to read files, TODO: Regex the deets out of the file name
@@ -127,12 +146,44 @@ func (lib *Library) postFileAddToLibraryHooks(file *FileOnDiskRecord) {
 		if len(extension) == 4 {
 			if extension[3] != 'z' {
 				//File might be compressable, send it off
-				if lib.running {
-					lib.fileCompressionRequests <- file.Path
-				}
+				log.Info().Str("path", file.Path).Msg("Adding to compression list")
+				lib.fileCompressionRequests <- file.Path
 			}
 		}
 	}
+}
+
+func (lib *Library) validateFile(filepath string) bool {
+	//Returns false if file fails validation, true if good or uncertain
+
+	if len(lib.settings.HactoolPath) == 0 {
+		return true // cant check
+	}
+	ext := strings.ToLower(path.Ext(filepath))
+	if len(ext) == 4 {
+
+		args := []string{"-t"}
+		if ext[0:3] == ".ns" {
+			args = append(args, "pfs0")
+		} else if ext[0:3] == ".xc" {
+			args = append(args, "xci")
+		} else {
+			return true // can't validate
+		}
+		args = append(args, filepath)
+		cmd := exec.Command(lib.settings.HactoolPath, args...)
+		byteData, err := cmd.CombinedOutput()
+		if err != nil {
+			outputLog := string(byteData)
+			log.Error().Err(err).Str("path", filepath).Str("output", outputLog).Msg("File validation failed")
+			return false
+		}
+		log.Debug().Str("path", filepath).Msg("File validation ok")
+		return true
+
+	}
+	return true
+
 }
 
 // sortFileIfApplicable; if sorting is on, attempts to sort the file to the new path if its different.
@@ -150,7 +201,7 @@ func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath
 	}
 	newPath, err := lib.determineIdealFilePath(infoInfo, currentPath)
 	if err != nil {
-		log.Warn().Msgf("Cant sort file %s due to error %v", currentPath, err)
+		log.Warn().Err(err).Str("path", currentPath).Msg("Determining ideal path failed")
 		return currentPath
 	}
 	if err == nil {
@@ -158,7 +209,7 @@ func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath
 			log.Debug().Str("oldPath", currentPath).Str("newPath", newPath).Msg("Attempting move")
 			err := os.MkdirAll(path.Dir(newPath), 0755)
 			if err != nil {
-				log.Warn().Msgf("Could not move %s to %s, due to err %v", currentPath, newPath, err)
+				log.Warn().Str("oldPath", currentPath).Str("newPath", newPath).Err(err).Msg("Moving file raised error")
 			} else {
 				//Check if file exists already, if it does then only overwrite if dedupe is on
 				if _, err := os.Stat(newPath); err == nil {
@@ -170,13 +221,11 @@ func (lib *Library) sortFileIfApplicable(infoInfo *formats.FileInfo, currentPath
 				}
 				err = utilities.RenameFile(currentPath, newPath)
 				if err != nil {
-					log.Warn().Msgf("Could not move %s to %s, due to err %v", currentPath, newPath, err)
+					log.Warn().Str("oldPath", currentPath).Str("newPath", newPath).Err(err).Msg("Moving file raised error")
 				} else {
 					log.Info().Str("oldPath", currentPath).Str("newPath", newPath).Msg("Done moving")
 					//Push the folder to the cleanup path
-					if lib.running {
-						lib.folderCleanupRequests <- filepath.Dir(currentPath)
-					}
+					lib.folderCleanupRequests <- filepath.Dir(currentPath)
 					return newPath
 				}
 			}
@@ -216,7 +265,7 @@ func (lib *Library) getFileInfo(sourceFile string) (*formats.FileInfo, error) {
 		return nil, fmt.Errorf("could not determine sorted path for %s due to error %w during file parsing", sourceFile, err)
 	}
 	if len(info.EmbeddedTitle) == 0 && info.Type != cnmt.DLC {
-		log.Warn().Msgf("Parsing embedded title failed for file %s", sourceFile)
+		log.Warn().Str("file", sourceFile).Msg("Parsing embedded title failed")
 	}
 	fileStat, err := file.Stat()
 	if err == nil {

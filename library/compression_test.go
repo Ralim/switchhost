@@ -58,7 +58,6 @@ func TestCompressionWorker(t *testing.T) {
 		fileCompressionRequests: make(chan string),
 		fileScanRequests:        make(chan *scanRequest),
 		waitgroup:               &sync.WaitGroup{},
-		running:                 true,
 	}
 	lib.waitgroup.Add(1)
 

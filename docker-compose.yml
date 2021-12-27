@@ -1,0 +1,11 @@
+version: "3"
+services:
+  switchhost:
+    stdin_open: true
+    tty: true
+    build:
+      context: .
+    volumes:
+      - ./:/switchhost/:Z
+      - ./config.json:/switchhost/config.json
+      - ~/.switch/prod.keys:/switchhost/prod.keys

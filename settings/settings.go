@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	stdlog "log"
 	"os"
+	"strings"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -19,29 +20,32 @@ type AuthUser struct {
 }
 
 type Settings struct {
-	PreferredLangOrder  []int      `json:"preferredLanguageOrder"` // List of language id's to use when parsing CNMT data area
-	TitlesDBURLs        []string   `json:"titlesDbUrls"`           // URL's to use when loading the local titledb
-	FoldersToScan       []string   `json:"sourceFolders"`          // Folders to look for new files in
-	HTTPPort            int        `json:"httpPort"`               // Port used for HTTP
-	FTPPort             int        `json:"ftpPort"`                // Port used for FTP
-	StorageFolder       string     `json:"storageFolder"`          // Where sorted files are stored to
-	CacheFolder         string     `json:"cacheFolder"`            // Folder to cache downloads and other temp files, if preserved will avoid re-downloads. Can be temp tho
-	OrganisationFormat  string     `json:"organisationFormat"`     // Organisation format string
-	EnableSorting       bool       `json:"enableSorting"`          // If sorting should be performed
-	CleanupEmptyFolders bool       `json:"cleanupEmptyFolders"`    // Should we cleanup empty folders in the search and storage paths
-	ServerMOTD          string     `json:"serverMOTD"`             // Server title used for public facing info
-	LogLevel            int        `json:"logLevel"`               // Log level, higher numbers reduce log output
-	LogFilePath         string     `json:"logPath"`                // Path to persist logs to, if empty none are persisted
-	Deduplicate         bool       `json:"deduplicate"`            // If we remove duplicate files for the same titleID, or old update files
-	PreferXCI           bool       `json:"preferXCI"`              // If when we find duplicates we pick the xci/xcz file over nsp/nsz
-	PreferCompressed    bool       `json:"preferCompressed"`       // Prefer compressed form of files on duplicate
-	UploadingAllowed    bool       `json:"uploadingAllowed"`       // Can FTP be used to push new files
-	AllowAnonFTP        bool       `json:"allowAnonFTP"`           // Allow anon (open to public) FTP
-	AllowAnonHTTP       bool       `json:"allowAnonHTTP"`          // Allow anon (open to public) HTTP
-	Users               []AuthUser `json:"users"`                  // User accounts
-	JSONLocations       []string   `json:"jsonLocations"`          // Extra locations to add to locations field in json for backup instances
-	NSZCommandLine      string     `json:"NSZCommandLine"`         // Base command line used to run NSZ
-	CompressionEnabled  bool       `json:"compressionEnabled"`     // Should files be converted to their compressed verions
+	PreferredLangOrder    []int      `json:"preferredLanguageOrder"` // List of language id's to use when parsing CNMT data area
+	TitlesDBURLs          []string   `json:"titlesDbUrls"`           // URL's to use when loading the local titledb
+	FoldersToScan         []string   `json:"sourceFolders"`          // Folders to look for new files in
+	HTTPPort              int        `json:"httpPort"`               // Port used for HTTP
+	FTPPort               int        `json:"ftpPort"`                // Port used for FTP
+	StorageFolder         string     `json:"storageFolder"`          // Where sorted files are stored to
+	CacheFolder           string     `json:"cacheFolder"`            // Folder to cache downloads and other temp files, if preserved will avoid re-downloads. Can be /tmp/ though
+	OrganisationFormat    string     `json:"organisationFormat"`     // Organisation format string
+	EnableSorting         bool       `json:"enableSorting"`          // If sorting should be performed
+	CleanupEmptyFolders   bool       `json:"cleanupEmptyFolders"`    // Should we cleanup empty folders in the search and storage paths
+	ServerMOTD            string     `json:"serverMOTD"`             // Server title used for public facing info
+	LogLevel              int        `json:"logLevel"`               // Log level, higher numbers reduce log output
+	LogFilePath           string     `json:"logPath"`                // Path to persist logs to, if empty none are persisted
+	Deduplicate           bool       `json:"deduplicate"`            // If we remove duplicate files for the same titleID, or old update files
+	PreferXCI             bool       `json:"preferXCI"`              // If when we find duplicates we pick the xci/xcz file over nsp/nsz
+	PreferCompressed      bool       `json:"preferCompressed"`       // Prefer compressed form of files on duplicate
+	UploadingAllowed      bool       `json:"uploadingAllowed"`       // Can FTP be used to push new files
+	AllowAnonFTP          bool       `json:"allowAnonFTP"`           // Allow anon (open to public) FTP
+	AllowAnonHTTP         bool       `json:"allowAnonHTTP"`          // Allow anon (open to public) HTTP
+	Users                 []AuthUser `json:"users"`                  // User accounts
+	JSONLocations         []string   `json:"jsonLocations"`          // Extra locations to add to locations field in json for backup instances
+	NSZCommandLine        string     `json:"NSZCommandLine"`         // Base command line used to run NSZ
+	CompressionEnabled    bool       `json:"compressionEnabled"`     // Should files be converted to their compressed verions
+	TempFilesFolder       string     `json:"tempFilesFolder"`        // Temporary file storage location for FTP uploads
+	HactoolPath           string     `json:"HactoolPath"`            // Command line that is run on a file to validate the file is "intact"
+	DeleteValidationFails bool       `json:"deleteValidationFails"`  // If a file fails validation, should it be deleted
 
 	// Private
 	filePath string
@@ -53,29 +57,33 @@ type Settings struct {
 func NewSettings(path string) *Settings {
 
 	settings := &Settings{
-		filePath:            path,
-		PreferredLangOrder:  []int{1, 0},
-		FoldersToScan:       []string{"./incoming_files"}, // Search locations
-		JSONLocations:       []string{},                   // Locations in the json to point to backup instances
-		StorageFolder:       "./game_library",             // Storage location
-		CacheFolder:         "/tmp/",                      // Where to cache downloaded files to (titledb)
-		EnableSorting:       false,                        // default "safe"
-		CleanupEmptyFolders: true,                         // Relatively safe
-		HTTPPort:            8080,                         // Ports
-		FTPPort:             2121,                         // Ports
-		ServerMOTD:          "Switchroot",                 // MOTD to include in the json file
-		LogLevel:            1,                            // Info
-		LogFilePath:         "",                           // No log file
-		OrganisationFormat:  "{TitleName}/{TitleName} {Type} {VersionDec} [{TitleID}][{Version}]",
-		NSZCommandLine:      "nsz --verify -w -C -p -t 4 --rm-source ",
-		CompressionEnabled:  false,
-		PreferCompressed:    true,
-		PreferXCI:           false,
-		UploadingAllowed:    false,
-		Deduplicate:         false,
-		AllowAnonFTP:        false,
-		AllowAnonHTTP:       false,
-		logFile:             nil,
+		filePath:              path,
+		PreferredLangOrder:    []int{1, 0},
+		FoldersToScan:         []string{"./incoming_files"},                                         // Search locations
+		JSONLocations:         []string{},                                                           // Locations in the json to point to backup instances
+		StorageFolder:         "./game_library",                                                     // Storage location
+		CacheFolder:           "/tmp/",                                                              // Where to cache downloaded files to (titledb)
+		EnableSorting:         false,                                                                // default "safe"
+		CleanupEmptyFolders:   true,                                                                 // Relatively safe
+		HTTPPort:              8080,                                                                 // Ports
+		FTPPort:               2121,                                                                 // Ports
+		ServerMOTD:            "Switchroot",                                                         // MOTD to include in the json file
+		LogLevel:              1,                                                                    // Info
+		LogFilePath:           "",                                                                   // No log file
+		OrganisationFormat:    "{TitleName}/{TitleName} {Type} {VersionDec} [{TitleID}][{Version}]", // Path used for organising files
+		NSZCommandLine:        "nsz --verify -w -C -p -t 4 --rm-source ",                            // NSZ command used for file compression
+		HactoolPath:           "hactool",                                                            // Path to hactool for integrity checking
+		CompressionEnabled:    false,                                                                // Should files be compressed using NSZ
+		PreferCompressed:      true,                                                                 // Should compressed files be preferred over non-compressed on duplicate
+		PreferXCI:             false,                                                                // Should XCI files be preferred over nsp on duplicate
+		UploadingAllowed:      false,                                                                // Should FTP allow file uploads
+		Deduplicate:           false,                                                                // Should the software delete duplicate files
+		AllowAnonFTP:          false,                                                                // Should anon users be allowed FTP access
+		AllowAnonHTTP:         false,                                                                // Should anon users be allowed HTTP access
+		DeleteValidationFails: false,                                                                //
+		logFile:               nil,                                                                  // Optional path to a file to log to
+		TempFilesFolder:       "/tmp",                                                               // Temp files location used for staging FTP uploads
+
 		//Add a demo account
 		Users: []AuthUser{
 			{
@@ -94,6 +102,8 @@ func NewSettings(path string) *Settings {
 	}
 	// Load the settings file if it exsts, which will override the defaults above if specified
 	settings.Load()
+	// Clean up paths
+	settings.cleanpaths()
 	// Save to preserve if we have added anything to the file, and drop no-longer used settings for clarity
 	settings.Save()
 	// Setup the logging
@@ -148,7 +158,7 @@ func (s *Settings) setupLogging() {
 		//Setup a mirror of the log to the specified file
 		logfile, err := os.OpenFile(s.LogFilePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
 		if err != nil {
-			log.Warn().Msgf("Couldn't open log file %s for writing - %v", s.LogFilePath, err)
+			log.Warn().Str("file", s.LogFilePath).Err(err).Msg("Couldn't open log file for writing")
 			return
 		}
 		s.logFile = logfile
@@ -160,4 +170,15 @@ func (s *Settings) setupLogging() {
 		log.Info().Msg("Started logging to file")
 
 	}
+}
+
+func (s *Settings) cleanpaths() {
+	//Since users may make mistakes and start or end the paths with a string, clean all of these up
+	s.TempFilesFolder = strings.TrimSpace(s.TempFilesFolder)
+	s.StorageFolder = strings.TrimSpace(s.StorageFolder)
+	s.CacheFolder = strings.TrimSpace(s.CacheFolder)
+	for i, v := range s.FoldersToScan {
+		s.FoldersToScan[i] = strings.TrimSpace(v)
+	}
+
 }

@@ -32,12 +32,10 @@ type Library struct {
 	filesKnown map[uint64]TitleOnDiskCollection
 
 	waitgroup               *sync.WaitGroup
-	waitgroupOrganiser      *sync.WaitGroup
-	running                 bool
 	fileScanRequests        chan *scanRequest
 	folderCleanupRequests   chan string
 	fileCompressionRequests chan string
-	exitRequest             chan bool
+	exit                    chan bool
 }
 
 func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings) *Library {
@@ -45,14 +43,14 @@ func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings) *Library
 		titledb:  titledb,
 		settings: settings,
 		// Channels
-		fileScanRequests:        make(chan *scanRequest, 32),
-		folderCleanupRequests:   make(chan string, 128),
-		fileCompressionRequests: make(chan string, 128),
-		exitRequest:             make(chan bool),
+		fileScanRequests:        make(chan *scanRequest, 256),
+		folderCleanupRequests:   make(chan string, 256),
+		fileCompressionRequests: make(chan string, 256),
+		exit:                    make(chan bool, 10),
+		keys:                    nil,
 		filesKnown:              make(map[uint64]TitleOnDiskCollection),
 		// Internal objects
-		waitgroup:          &sync.WaitGroup{},
-		waitgroupOrganiser: &sync.WaitGroup{},
+		waitgroup: &sync.WaitGroup{},
 	}
 
 	return library
@@ -74,7 +72,6 @@ func (lib *Library) LoadKeys(keysDBReader io.Reader) error {
 
 //Start spawns internal workers and performs any non-trivial setup time tasks
 func (lib *Library) Start() error {
-	lib.running = true
 	//Check output folder exists if sorting enabled
 	if lib.settings.EnableSorting {
 		if _, err := os.Stat(lib.settings.StorageFolder); os.IsNotExist(err) {
@@ -87,7 +84,7 @@ func (lib *Library) Start() error {
 
 	}
 	// Start worker thread for handling file parsing
-	lib.waitgroupOrganiser.Add(1)
+	lib.waitgroup.Add(1)
 	go lib.fileScanningWorker()
 	// Run first file scan in background
 	lib.waitgroup.Add(1)
@@ -103,20 +100,9 @@ func (lib *Library) Start() error {
 }
 
 func (lib *Library) Stop() {
-	lib.running = false
 	log.Info().Msg("Library closing")
-	//Order matters here a bit since we have a mild circular loop around the central organiser
-	// We want to stop (a) All scanning and (b) compression and cleanup _first_
-	// Then wind down the main organiser thread
-
-	close(lib.fileCompressionRequests) // causes compression to pack up
-	close(lib.folderCleanupRequests)   // Will cause cleanup to exit
-
-	//Compression _may_ send results back to the organiser, so we want to wait for compression to finish _before_ we stop organiser
+	lib.exit <- true
 	lib.waitgroup.Wait()
-
-	close(lib.fileScanRequests)
-	lib.waitgroupOrganiser.Wait()
 }
 
 // RunScan runs a scan of all "normal" scan folders
@@ -124,9 +110,7 @@ func (lib *Library) RunScan() {
 	defer lib.waitgroup.Done()
 	for _, folder := range lib.settings.GetAllScanFolders() {
 		if err := lib.ScanFolder(folder); err == nil {
-			if lib.running {
-				lib.folderCleanupRequests <- folder
-			}
+			lib.folderCleanupRequests <- folder
 		}
 
 	}
@@ -136,9 +120,7 @@ func (lib *Library) RunScan() {
 		isEndOfStartScan: true,
 		isNotifierBased:  false,
 	}
-	if lib.running {
-		lib.fileScanRequests <- event
-	}
+	lib.fileScanRequests <- event
 }
 
 func (lib *Library) NotifyIncomingFile(path string) {
@@ -150,9 +132,7 @@ func (lib *Library) NotifyIncomingFile(path string) {
 		fileRemoved:      false,
 		mustCleanupFile:  true,
 	}
-	if lib.running {
-		lib.fileScanRequests <- event
-	}
+	lib.fileScanRequests <- event
 }
 
 //ScanFolder recursively scans the provied folder and feeds it to the organisation queue
@@ -183,9 +163,7 @@ func (lib *Library) ScanFolder(path string) error {
 						isEndOfStartScan: false,
 						isNotifierBased:  false,
 					}
-					if lib.running {
-						lib.fileScanRequests <- event
-					}
+					lib.fileScanRequests <- event
 				}
 			}
 		}

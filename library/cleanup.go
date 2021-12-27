@@ -14,27 +14,34 @@ import (
 
 func (lib *Library) cleanupFolderWorker() {
 	defer lib.waitgroup.Done()
-	for cleanupPath := range lib.folderCleanupRequests {
-		if lib.settings.CleanupEmptyFolders {
-			//need to check that this folder is inside one of the search folders && its not _the_ search folder
-			if cleanupPath, err := filepath.Abs(cleanupPath); err == nil {
-				ok := false
-				parent := ""
-				for _, baseFolder := range lib.settings.GetAllScanFolders() {
-					if folderAbs, err := filepath.Abs(baseFolder); err == nil {
-						if strings.HasPrefix(cleanupPath, folderAbs) && cleanupPath != folderAbs {
-							ok = true
-							parent = folderAbs
+	defer log.Info().Msg("Cleanup task exiting")
+	for {
+		select {
+		case <-lib.exit:
+			lib.exit <- true
+			return
+		case cleanupPath := <-lib.folderCleanupRequests:
+			if lib.settings.CleanupEmptyFolders {
+				//need to check that this folder is inside one of the search folders && its not _the_ search folder
+				if cleanupPath, err := filepath.Abs(cleanupPath); err == nil {
+					ok := false
+					parent := ""
+					for _, baseFolder := range lib.settings.GetAllScanFolders() {
+						if folderAbs, err := filepath.Abs(baseFolder); err == nil {
+							if strings.HasPrefix(cleanupPath, folderAbs) && cleanupPath != folderAbs {
+								ok = true
+								parent = folderAbs
+							}
 						}
 					}
-				}
-				if ok {
-					go recursivelyCheckForEmptyFolders(parent)
+					if ok {
+						go recursivelyCheckForEmptyFolders(parent)
+					}
 				}
 			}
 		}
 	}
-	log.Info().Msg("Cleanup task exiting")
+
 }
 
 func recursivelyCheckForEmptyFolders(pathin string) {
