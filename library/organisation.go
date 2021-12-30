@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -156,30 +155,24 @@ func (lib *Library) postFileAddToLibraryHooks(file *FileOnDiskRecord) {
 func (lib *Library) validateFile(filepath string) bool {
 	//Returns false if file fails validation, true if good or uncertain
 
-	if len(lib.settings.HactoolPath) == 0 {
-		return true // cant check
-	}
 	ext := strings.ToLower(path.Ext(filepath))
 	if len(ext) == 4 {
 
-		args := []string{"-t"}
 		if ext[0:3] == ".ns" {
-			args = append(args, "pfs0")
+			file, err := os.Open(filepath)
+			if err != nil {
+				return true
+			}
+			defer file.Close()
+			fmt.Println(filepath)
+			if err := formats.ValidateNSPHash(lib.keys, lib.settings, file); err != nil {
+				log.Warn().Str("path", filepath).Err(err).Msg("Failed validation")
+				return false
+			}
 		} else if ext[0:3] == ".xc" {
-			args = append(args, "xci")
 		} else {
 			return true // can't validate
 		}
-		args = append(args, filepath)
-		cmd := exec.Command(lib.settings.HactoolPath, args...)
-		byteData, err := cmd.CombinedOutput()
-		if err != nil {
-			outputLog := string(byteData)
-			log.Error().Err(err).Str("path", filepath).Str("output", outputLog).Msg("File validation failed")
-			return false
-		}
-		log.Debug().Str("path", filepath).Msg("File validation ok")
-		return true
 
 	}
 	return true
