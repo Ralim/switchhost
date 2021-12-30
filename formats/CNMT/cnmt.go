@@ -90,9 +90,11 @@ func ParseBinary(pfs0 *partitionfs.PartionFS, data []byte) (*ContentMetaAttribut
 	contents := map[string]Content{}
 	for i := uint16(0); i < contentEntryCount; i++ {
 		position := 0x20 /*size of cnmt header*/ + tableOffset + (i * uint16(0x38))
-		hashData := cnmt[position : position+0x10]
+		hashData := cnmt[position : position+0x20]
 		ncaId := cnmt[position+0x20 : position+0x20+0x10]
 		sizeData := cnmt[position+0x30 : position+0x30+0x06]
+		// only 6 bytes, so need to add two zero pads
+		sizeData = append([]byte{0, 0}, sizeData...)
 		size := binary.LittleEndian.Uint64(sizeData)
 		contentType := ""
 		switch cnmt[position+0x36] {
