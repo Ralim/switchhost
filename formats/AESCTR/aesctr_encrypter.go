@@ -14,10 +14,7 @@ import (
 
 type AESCTREncrypter struct {
 	sourceStream io.Reader
-
-	sourceKey []byte
-
-	counter *ctr
+	counter      *ctr
 }
 
 func NewAESCTREncrypter(reader io.Reader, key, prefix, postfix []byte) (*AESCTREncrypter, error) {
@@ -27,7 +24,6 @@ func NewAESCTREncrypter(reader io.Reader, key, prefix, postfix []byte) (*AESCTRE
 	}
 	return &AESCTREncrypter{
 		sourceStream: reader,
-		sourceKey:    key,
 		counter:      Newctr(aesBlockCipher, aesBlockCipher.BlockSize(), prefix, postfix),
 	}, nil
 }
@@ -40,7 +36,6 @@ func (A *AESCTREncrypter) Read(p []byte) (int, error) {
 	blockSize := A.counter.Blocksize
 	n := len(p)
 	if n%blockSize != 0 {
-		fmt.Println("PADDDDD")
 		n -= (n % blockSize)
 	}
 	read, err := A.sourceStream.Read(p)
@@ -50,12 +45,11 @@ func (A *AESCTREncrypter) Read(p []byte) (int, error) {
 	// One issue to handle when time permits is read != n, and its no longger block aligned
 	if read != n {
 		if read%blockSize != 0 {
-			fmt.Println("read unalign", read, n)
 			return 0, errors.New("unhandled, read not of aes block size")
 		}
 		n = read
 	}
-	A.counter.XORKeyStream(p, p)
+	A.counter.XORKeyStream(p[0:n])
 
 	return n, err
 

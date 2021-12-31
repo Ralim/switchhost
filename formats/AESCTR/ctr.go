@@ -69,26 +69,25 @@ func (A *ctr) refill() {
 	A.outUsed = 0
 }
 
-func (A *ctr) XORKeyStream(dst, src []byte) {
-	if len(dst) < len(src) {
-		panic("aesctr: output smaller than input")
-	}
-	for len(src) > 0 {
+func (A *ctr) XORKeyStream(dst []byte) {
+	for len(dst) > 0 {
 		if A.outUsed >= len(A.out)-A.blockCipher.BlockSize() {
 			A.refill()
 		}
 		// Want to use xorBytes from inside crypto but its not exported
 		// so for now, this is the best we have
-		// n := xorBytes(dst, src, A.out[A.outUsed:])
-		n := len(A.out[A.outUsed:])
-		if len(src) < n {
-			n = len(src)
+		// n := xorBytes(dst, dst, A.out[A.outUsed:])
+
+		n := len(A.out) - A.outUsed
+		if len(dst) < n {
+			n = len(dst)
 		}
+
 		for i := 0; i < n; i++ {
-			dst[i] = src[i] ^ A.out[A.outUsed+i]
+			dst[i] = dst[i] ^ A.out[A.outUsed+i]
 		}
+
 		dst = dst[n:]
-		src = src[n:]
 		A.outUsed += n
 	}
 }
