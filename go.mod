@@ -8,4 +8,7 @@ require (
 	goftp.io/server/v2 v2.0.0
 )
 
-require github.com/rs/xid v1.3.0 // indirect
+require (
+	github.com/klauspost/compress v1.13.6 // indirect
+	github.com/rs/xid v1.3.0 // indirect
+)
