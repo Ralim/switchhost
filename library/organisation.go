@@ -164,7 +164,6 @@ func (lib *Library) validateFile(filepath string) bool {
 				return true
 			}
 			defer file.Close()
-			fmt.Println(filepath)
 			if err := formats.ValidateNSPHash(lib.keys, lib.settings, file); err != nil {
 				log.Warn().Str("path", filepath).Err(err).Msg("Failed validation")
 				return false

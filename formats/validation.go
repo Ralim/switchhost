@@ -99,7 +99,6 @@ func ValidateNSPHash(keystore *keystore.Keystore, settings *settings.Settings, r
 					// Read out the partition
 
 					if !bytes.Equal(partitionHash, matchingHash.Hash) {
-						fmt.Println("Bang")
 						return errors.New("hash failed validation")
 					}
 					log.Info().Str("part", pfs0File.Name).Msg("validated correctly")
@@ -176,11 +175,11 @@ func ValidateNSPHash(keystore *keystore.Keystore, settings *settings.Settings, r
 					return errors.New("block decompression not yet implemented")
 				}
 
-				d, err := zstd.NewReader(reader)
+				zstdReader, err := zstd.NewReader(reader)
 				if err != nil {
 					return err
 				}
-				defer d.Close()
+				defer zstdReader.Close()
 
 				for sectNum, section := range sections {
 					// Chain varies by crypto type
@@ -190,7 +189,7 @@ func ValidateNSPHash(keystore *keystore.Keystore, settings *settings.Settings, r
 					var prehashReader io.Reader
 					// Now we either chain this into crypto or the hash directly
 					if section.cryptoType == 3 || section.cryptoType == 4 {
-						cipherStream, err := aesctr.NewAESCTREncrypter(d, section.cryptoKey, section.cryptoCounter, []byte{})
+						cipherStream, err := aesctr.NewAESCTREncrypter(zstdReader, section.cryptoKey, section.cryptoCounter, []byte{})
 						if err != nil {
 							return err
 						}
@@ -205,23 +204,16 @@ func ValidateNSPHash(keystore *keystore.Keystore, settings *settings.Settings, r
 						prehashReader = cipherStream
 
 					} else {
-						prehashReader = d
+						prehashReader = zstdReader
 					}
 					//Now we can copy all the bytes into the hasher
 
-					fmt.Println("Start read", section.size)
-					n, err := io.CopyN(hasher, prehashReader, section.size-(offset-section.offset))
+					_, err = io.CopyN(hasher, prehashReader, section.size-(offset-section.offset))
 					if err != nil {
 						return err
 					}
-					if n != section.size {
-						return errors.New("partial copy")
-					}
-
-					fmt.Printf("%v-%v - %X\n", offset, offset+section.size, hasher.Sum(nil))
 
 				}
-				fmt.Println("CheckHash")
 				partitionHash := hasher.Sum(nil)
 
 				validated := false
@@ -232,7 +224,7 @@ func ValidateNSPHash(keystore *keystore.Keystore, settings *settings.Settings, r
 						if !bytes.Equal(partitionHash, matchingHash.Hash) {
 							return fmt.Errorf("hash failed validation %X != %X", partitionHash, matchingHash.Hash)
 						}
-						log.Info().Str("part", pfs0File.Name).Msg("validated correctly")
+						log.Debug().Str("part", pfs0File.Name).Msg("validated correctly")
 						validated = true
 					}
 				}
@@ -250,10 +242,9 @@ func ValidateNSPHash(keystore *keystore.Keystore, settings *settings.Settings, r
 					// Read out the partition
 
 					if !bytes.Equal(partitionHash, matchingHash.Hash) {
-						fmt.Println("Bang")
 						return errors.New("hash failed validation")
 					}
-					log.Info().Str("part", pfs0File.Name).Msg("validated correctly")
+					log.Debug().Str("part", pfs0File.Name).Msg("validated correctly")
 					validated = true
 				}
 			}
