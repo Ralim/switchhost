@@ -1,9 +1,11 @@
 package termui
 
 import (
+	"sort"
 	"sync"
 
 	"github.com/rivo/tview"
+	"github.com/rs/zerolog/log"
 )
 
 // TermUI is the wrapper for the basic terminal interface provided
@@ -11,6 +13,7 @@ import (
 
 type TaskState struct {
 	name        string
+	lastStatus  string
 	statusTable *tview.Table
 	app         *tview.Application
 	//Row and col of the status cell
@@ -85,6 +88,17 @@ func (t *TermUI) Stop() {
 
 }
 
+func (t *TermUI) sortTasks() {
+	//Sorts tasks alphabetically and redraws the list
+	sort.SliceStable(t.tasks, func(i, j int) bool {
+		return t.tasks[i].name < t.tasks[j].name
+	})
+	for i := 0; i < len(t.tasks); i++ {
+		t.tasks[i].row = i + 1
+		t.tasks[i].redraw()
+		log.Info().Msg(t.tasks[i].name)
+	}
+}
 func (t *TermUI) RegisterTask(taskName string) *TaskState {
 	t.Lock()
 	defer t.Unlock()
@@ -104,12 +118,22 @@ func (t *TermUI) RegisterTask(taskName string) *TaskState {
 	}
 	state.UpdateStatus("Loading...")
 	t.tasks = append(t.tasks, state)
+	t.sortTasks() // Ensure tasks are sorted
 
 	return state
 }
 
 func (t *TaskState) UpdateStatus(state string) {
+	t.lastStatus = state
 	t.app.QueueUpdateDraw(func() {
 		t.statusTable.SetCellSimple(t.row, t.col, state)
+	})
+}
+
+//redraw draws title and contents again
+func (t *TaskState) redraw() {
+	t.app.QueueUpdateDraw(func() {
+		t.statusTable.SetCellSimple(t.row, t.col, t.lastStatus)
+		t.statusTable.SetCellSimple(t.row, t.col-1, t.name)
 	})
 }
