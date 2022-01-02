@@ -10,6 +10,7 @@ import (
 	"github.com/ralim/switchhost/formats"
 	"github.com/ralim/switchhost/keystore"
 	"github.com/ralim/switchhost/settings"
+	"github.com/ralim/switchhost/termui"
 	"github.com/ralim/switchhost/titledb"
 	"github.com/rs/zerolog/log"
 )
@@ -55,12 +56,14 @@ type Library struct {
 	// 5. Additionally, once a file is in the library, compression may be desired and thus it is passed here
 	fileCompressionRequests chan *fileScanningInfo
 	exit                    chan bool
+	ui                      *termui.TermUI
 }
 
-func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings) *Library {
+func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings, ui *termui.TermUI) *Library {
 	library := &Library{
 		titledb:  titledb,
 		settings: settings,
+		ui:       ui,
 		keys:     nil,
 		// Channels
 		fileMetaScanRequests:       make(chan *fileScanningInfo, ChannelDepth),

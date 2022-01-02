@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path"
 
@@ -22,18 +23,33 @@ func main() {
 
 	settings := settings.NewSettings(settingsPath)
 	settings.SetupLogging(ui.LogsView)
+
+	uiExit := make(chan bool, 1)
+	go func() {
+		ui.Run()
+		uiExit <- true
+	}()
+
+	// Download TitlesDB
+
+	titlesDBInfo := ui.RegisterTask("TitlesDB")
+	titlesDBInfo.UpdateStatus("Downloading")
 	Titles := titledb.CreateTitlesDB(settings)
 	Titles.UpdateTitlesDB()
-	lib := library.NewLibrary(Titles, settings)
+	titlesDBInfo.UpdateStatus("Done")
+
+	lib := library.NewLibrary(Titles, settings, ui)
+
 	tryAndLoadKeys(lib)
+
 	lib.Start()
 
 	server := server.NewServer(lib, Titles, settings)
 
 	server.Run()
-
-	ui.Run()
+	<-uiExit
 	log.Warn().Msg("Ctrl-c pressed, closing up")
+	fmt.Println("Waiting for tasks to stop")
 	server.Stop() // stop the servers
 	lib.Stop()    // wait for library to close down
 	ui.Stop()

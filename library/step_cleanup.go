@@ -1,6 +1,7 @@
 package library
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +16,9 @@ import (
 func (lib *Library) cleanupFolderWorker() {
 	defer lib.waitgroup.Done()
 	defer log.Info().Msg("Cleanup task exiting")
+	status := lib.ui.RegisterTask("Cleanup")
+	defer status.UpdateStatus("Exited")
+	status.UpdateStatus("Idle")
 	for {
 		select {
 		case <-lib.exit:
@@ -35,7 +39,9 @@ func (lib *Library) cleanupFolderWorker() {
 						}
 					}
 					if ok {
-						go recursivelyCheckForEmptyFolders(parent)
+						status.UpdateStatus(fmt.Sprintf("Scanning %s", parent))
+						recursivelyCheckForEmptyFolders(parent)
+						status.UpdateStatus("Idle")
 					}
 				}
 			}
