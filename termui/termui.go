@@ -34,22 +34,21 @@ func NewTermUI() *TermUI {
 	//Logs stream
 
 	t.LogsView = tview.NewTextView()
-	t.LogsView.SetText("Loading...\n")
 	t.LogsView.SetTextAlign(tview.AlignLeft)
 	t.LogsView.SetDynamicColors(true)
 	t.LogsView.SetChangedFunc(func() {
 		t.app.Draw()
 	})
 	t.LogsView.SetMaxLines(4096)
-	t.LogsView.SetWrap(false)
-	t.LogsView.SetTitle("Logs")
+	t.LogsView.SetWrap(true)
+	t.LogsView.SetTitle("Log Stream")
 	t.LogsView.SetBorder(true)
 
 	//Status table
 
 	t.statusTable = tview.NewTable()
 	t.statusTable.SetBorders(true)
-	t.statusTable.SetTitle("Status")
+	t.statusTable.SetTitle("Worker Tasks")
 	t.statusTable.SetFixed(1, 1)
 	t.statusTable.SetCellSimple(0, 0, "Task")
 	t.statusTable.SetCellSimple(0, 1, "Status")
@@ -64,8 +63,8 @@ func NewTermUI() *TermUI {
 
 	// Grid contents
 	grid.AddItem(t.Statistics.table, 0, 0, 1, 2, 0, 0, false)
-	grid.AddItem(t.statusTable, 1, 0, 1, 1, 0, 0, true)
-	grid.AddItem(t.LogsView, 1, 1, 1, 1, 0, 0, false)
+	grid.AddItem(t.statusTable, 1, 0, 1, 1, 0, 0, false)
+	grid.AddItem(t.LogsView, 1, 1, 1, 1, 0, 0, true)
 
 	t.app.SetRoot(grid, true)
 	t.app.SetFocus(grid)
