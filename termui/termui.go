@@ -51,6 +51,7 @@ func NewTermUI() *TermUI {
 	t.statusTable.SetFixed(1, 1)
 	t.statusTable.SetCellSimple(0, 0, "Task")
 	t.statusTable.SetCellSimple(0, 1, "Status")
+	t.statusTable.GetCell(0, 1).SetExpansion(1) // Set second col to expand out
 
 	// Grid
 
