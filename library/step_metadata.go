@@ -17,9 +17,9 @@ import (
 
 //
 
-func (lib *Library) FileMetadataWorker() {
+func (lib *Library) fileMetadataWorker() {
 	defer lib.waitgroup.Done()
-	defer log.Info().Msg("FileMetadataWorker task exiting")
+	defer log.Info().Msg("fileMetadataWorker task exiting")
 
 	//For now limited to having to use keys to read files, TODO: Regex the deets out of the file name
 	if lib.keys == nil {

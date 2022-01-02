@@ -9,9 +9,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (lib *Library) FileValidationWorker() {
+func (lib *Library) fileValidationWorker() {
 	defer lib.waitgroup.Done()
-	defer log.Info().Msg("FileValidationWorker task exiting")
+	defer log.Info().Msg("fileValidationWorker task exiting")
 
 	if lib.keys == nil {
 		log.Error().Msg("No keys are loaded, so file validations can't work.")

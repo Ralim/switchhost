@@ -19,13 +19,6 @@ func (lib *Library) RunScan() {
 		}
 
 	}
-	//end marker to allow indication to users that scan is done
-	event := &scanRequest{
-		path:             "",
-		isEndOfStartScan: true,
-		isNotifierBased:  false,
-	}
-	lib.fileScanRequests <- event
 }
 
 //ScanFolder recursively scans the provied folder and feeds it to the organisation queue
@@ -51,12 +44,10 @@ func (lib *Library) ScanFolder(path string) error {
 				if shouldScan {
 					//This is a file, so push it to the queue
 					log.Debug().Str("path", path).Msg("File scan requested")
-					event := &scanRequest{
-						path:             path,
-						isEndOfStartScan: false,
-						isNotifierBased:  false,
+					event := fileScanningInfo{
+						path: path,
 					}
-					lib.fileScanRequests <- event
+					lib.fileMetaScanRequests <- event
 				}
 			}
 		}

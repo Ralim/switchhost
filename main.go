@@ -22,9 +22,7 @@ func main() {
 	Titles.UpdateTitlesDB()
 	lib := library.NewLibrary(Titles, settings)
 	tryAndLoadKeys(lib)
-	if err := lib.Start(); err != nil {
-		panic(err)
-	}
+	lib.Start()
 
 	server := server.NewServer(lib, Titles, settings)
 
