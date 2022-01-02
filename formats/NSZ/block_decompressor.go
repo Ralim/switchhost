@@ -1,7 +1,6 @@
 package nsz
 
 import (
-	"fmt"
 	"io"
 	"math"
 
@@ -85,10 +84,6 @@ func (d *Decompressor) Read(p []byte) (n int, err error) {
 			d.currentNotCompressedReader = nil
 			err = nil
 		}
-
-		if d.trace > d.blockSize {
-			fmt.Println("OVR", d.trace)
-		}
 		return n, err
 	}
 	//Load in the next decompression block if we can
@@ -101,7 +96,6 @@ func (d *Decompressor) Read(p []byte) (n int, err error) {
 	{
 		_, err = d.source.Seek(nextBlocko.fileoffset, io.SeekStart)
 		if err != nil {
-			fmt.Println("B", d.currentVirtualPos, err)
 			return 0, err
 		}
 	}
@@ -112,14 +106,12 @@ func (d *Decompressor) Read(p []byte) (n int, err error) {
 		expectedDecompressedBlockSize = int64(d.header.DecompressedSize - d.currentVirtualPos)
 	}
 	//If expectedDecompressedBlockSize is the same as the recorded block size; its not compressed
-	// fmt.Println(nextBlock, int64(expectedDecompressedBlockSize) == nextBlocko.blockCompressedLength, expectedDecompressedBlockSize, nextBlocko.blockCompressedLength, d.expectedOutputSize, d.currentVirtualPos)
 	if int64(expectedDecompressedBlockSize) == nextBlocko.blockCompressedLength {
 		d.currentNotCompressedReader = nextBlocko.GetReader(d.source)
 		d.currentDecompressor = nil
 	} else {
 		zstdReader, err := zstd.NewReader(nextBlocko.GetReader(d.source))
 		if err != nil {
-			fmt.Println("B", d.currentVirtualPos, err)
 			return 0, err
 		}
 		d.currentDecompressor = zstdReader
@@ -133,8 +125,6 @@ func (d *Decompressor) Read(p []byte) (n int, err error) {
 	}
 	//Need to check if we hit EOF, so we can close the decompressor
 	if err == io.EOF {
-		fmt.Println("B3", d.currentVirtualPos, err)
-
 		if d.currentDecompressor != nil {
 			d.currentDecompressor.Close()
 		}
@@ -144,7 +134,6 @@ func (d *Decompressor) Read(p []byte) (n int, err error) {
 	}
 	d.currentVirtualPos += int64(n)
 	d.trace = int64(n)
-	// fmt.Println("B3", d.currentVirtualPos, err)
 	return n, err
 
 }

@@ -1,7 +1,6 @@
 package library
 
 import (
-	"fmt"
 	"os"
 	"sync"
 	"testing"
@@ -35,7 +34,6 @@ func TestNSZCompressFile(t *testing.T) {
 	}
 	sett.NSZCommandLine = "cat //"
 	err = lib.NSZCompressFile(tempFile.Name())
-	fmt.Println(err)
 	if err == nil {
 		t.Error("Should throw error on bad ")
 	}

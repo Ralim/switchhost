@@ -86,11 +86,9 @@ func ValidateXCIHash(keystore *keystore.Keystore, settings *settings.Settings, r
 	}
 	var fileCNMT *cnmt.ContentMetaAttributes
 	for _, pfs0File := range secureHfs0.FileEntryTable {
-
-		fileOffset := secureOffset + int64(pfs0File.StartOffset)
-
 		if strings.Contains(pfs0File.Name, "cnmt.nca") {
 
+			fileOffset := secureOffset + int64(pfs0File.StartOffset)
 			NCAMetaHeader, err := nca.ParseNCAEncryptedHeader(keystore, reader, uint64(fileOffset))
 			if err != nil {
 				return fmt.Errorf("ParseNCAEncryptedHeader failed with - %w", err)
@@ -126,8 +124,7 @@ func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequ
 		//This is a data partition, look to match it against one of the hashes, and if it matches then check its checksum
 
 		hasher := sha256.New()
-		reader.Seek(int64(pfs0File.StartOffset), io.SeekStart)
-		fmt.Println(pfs0File.StartOffset)
+		reader.Seek(int64(pfs0File.StartOffset)+offset, io.SeekStart)
 		if _, err := io.CopyN(hasher, reader, int64(pfs0File.Size)); err != nil {
 			return err
 		}
@@ -140,9 +137,9 @@ func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequ
 				// Read out the partition
 
 				if !bytes.Equal(partitionHash, matchingHash.Hash) {
-					return fmt.Errorf("hash failed validation; %X != %X", partitionHash, matchingHash.Hash)
+					return fmt.Errorf("hash failed validation; (no compression) %X != %X", partitionHash, matchingHash.Hash)
 				}
-				log.Info().Str("part", pfs0File.Name).Msg("validated correctly")
+				log.Info().Str("part", pfs0File.Name).Msg("validated correctly (no compression)")
 				validated = true
 			}
 		}
@@ -268,9 +265,9 @@ func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequ
 				// Read out the partition
 
 				if !bytes.Equal(partitionHash, matchingHash.Hash) {
-					return fmt.Errorf("hash failed validation; %X != %X", partitionHash, matchingHash.Hash)
+					return fmt.Errorf("hash failed validation (compress); %X != %X", partitionHash, matchingHash.Hash)
 				}
-				log.Debug().Str("part", pfs0File.Name).Msg("validated correctly")
+				log.Info().Str("part", pfs0File.Name).Msg("validated correctly (compress)")
 				validated = true
 			}
 		}
