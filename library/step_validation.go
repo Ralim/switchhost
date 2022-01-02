@@ -1,6 +1,7 @@
 package library
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"strings"
@@ -27,7 +28,9 @@ func (lib *Library) fileValidationWorker() {
 			requestedPath := event.path
 			// This file has had its metadata parsed, so we want to validate integrity if desired
 			// If it parses validation send it on, if not.. handle it
-			if lib.validateFile(requestedPath) {
+			shouldValidate := (lib.settings.ValidateLibrary && event.isInLibrary) || (lib.settings.ValidateNewFiles && !event.isInLibrary)
+
+			if !shouldValidate || lib.validateFile(requestedPath) {
 				//Validated, send onwards
 				lib.fileOrganisationRequests <- event
 			} else {
@@ -52,9 +55,6 @@ func (lib *Library) validateFile(filepath string) bool {
 	if len(ext) == 4 {
 
 		if ext[0:3] == ".ns" {
-			if !lib.settings.ValidateNSP {
-				return true
-			}
 			file, err := os.Open(filepath)
 			if err != nil {
 				return true
@@ -65,9 +65,6 @@ func (lib *Library) validateFile(filepath string) bool {
 				return false
 			}
 		} else if ext[0:3] == ".xc" {
-			if !lib.settings.ValidateXCI {
-				return true
-			}
 			file, err := os.Open(filepath)
 			if err != nil {
 				return true

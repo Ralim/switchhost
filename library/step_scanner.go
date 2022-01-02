@@ -23,6 +23,7 @@ func (lib *Library) RunScan() {
 
 //ScanFolder recursively scans the provied folder and feeds it to the organisation queue
 func (lib *Library) ScanFolder(path string) error {
+	isInLibraryFolder := strings.HasPrefix(path, lib.settings.StorageFolder)
 	return filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if err == nil {
 
@@ -45,7 +46,8 @@ func (lib *Library) ScanFolder(path string) error {
 					//This is a file, so push it to the queue
 					log.Debug().Str("path", path).Msg("File scan requested")
 					event := &fileScanningInfo{
-						path: path,
+						path:        path,
+						isInLibrary: isInLibraryFolder,
 					}
 					lib.fileMetaScanRequests <- event
 				}

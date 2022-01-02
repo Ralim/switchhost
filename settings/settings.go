@@ -49,8 +49,9 @@ type Settings struct {
 	UploadingAllowed bool   `json:"uploadingAllowed"` // Can FTP be used to push new files
 	TempFilesFolder  string `json:"tempFilesFolder"`  // Temporary file storage location for FTP uploads
 	// File validation on incoming
-	ValidateNSP           bool `json:"validateNSP"`           // If NSP/NSZ files should be checksum validated before being loaded into the library
-	ValidateXCI           bool `json:"validateXCI"`           // If XCI/XCZ files should be checksum validated before being loaded into the library
+
+	ValidateLibrary       bool `json:"validateLibrary"`
+	ValidateNewFiles      bool `json:"validateUploads"`       // If uploads must validate before being added, even if above toggles are off
 	DeleteValidationFails bool `json:"deleteValidationFails"` // If a file fails validation, should it be deleted
 	// Compression
 	NSZCommandLine     string `json:"NSZCommandLine"`     // Base command line used to run NSZ
@@ -94,8 +95,8 @@ func NewSettings(path string) *Settings {
 		DeleteValidationFails: false,                                                                //
 		logFile:               nil,                                                                  // Optional path to a file to log to
 		TempFilesFolder:       "/tmp",                                                               // Temp files location used for staging FTP uploads
-		ValidateNSP:           true,                                                                 // Default to doing full hash validations
-		ValidateXCI:           true,                                                                 // Default to doing full hash validations
+		ValidateLibrary:       false,                                                                // Should all existing library files be validated
+		ValidateNewFiles:      true,                                                                 // Should "new" files be validated (upload + not library)
 
 		//Add a demo account
 		Users: []AuthUser{

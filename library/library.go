@@ -27,6 +27,8 @@ type fileScanningInfo struct {
 	metadata *formats.FileInfo
 	//Sent to notify of a deleted file that must be cleand up from the lib
 	fileWasDeleted bool
+	// Did this file come from the library folder (else, its upload + startup scan)
+	isInLibrary bool
 }
 
 // Library manages the representation of the game files on disk + their metadata
