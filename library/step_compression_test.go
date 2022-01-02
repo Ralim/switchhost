@@ -1,7 +1,6 @@
 package library
 
 import (
-	"fmt"
 	"os"
 	"sync"
 	"testing"
@@ -35,7 +34,6 @@ func TestNSZCompressFile(t *testing.T) {
 	}
 	sett.NSZCommandLine = "cat //"
 	err = lib.NSZCompressFile(tempFile.Name())
-	fmt.Println(err)
 	if err == nil {
 		t.Error("Should throw error on bad ")
 	}
@@ -54,44 +52,49 @@ func TestCompressionWorker(t *testing.T) {
 		NSZCommandLine: "rm",
 	}
 	lib := Library{
-		settings:                &sett,
-		fileCompressionRequests: make(chan string),
-		fileScanRequests:        make(chan *scanRequest),
-		waitgroup:               &sync.WaitGroup{},
+		settings:                 &sett,
+		fileCompressionRequests:  make(chan *fileScanningInfo, 10),
+		fileMetaScanRequests:     make(chan *fileScanningInfo, 10),
+		fileOrganisationRequests: make(chan *fileScanningInfo, 10),
+		waitgroup:                &sync.WaitGroup{},
 	}
 	lib.waitgroup.Add(1)
 
 	defer close(lib.fileCompressionRequests)
-	defer close(lib.fileScanRequests)
+	defer close(lib.fileMetaScanRequests)
+	defer close(lib.fileOrganisationRequests)
 
 	go lib.compressionWorker()
-
-	lib.fileCompressionRequests <- tempFile.Name()
-
-	result := <-lib.fileScanRequests
-	if result == nil {
-		t.Error("bad result")
-	} else {
-		if !result.fileRemoved {
-			t.Error("should report file removed")
-		}
-		if result.path != tempFile.Name() {
-			t.Error("should report file path")
-		}
+	msg := &fileScanningInfo{
+		path: tempFile.Name(),
 	}
+	lib.fileCompressionRequests <- msg
+
+	result := <-lib.fileOrganisationRequests
+
+	if !result.fileWasDeleted {
+		t.Error("should report file removed")
+	}
+	if result.path != tempFile.Name() {
+		t.Error("should report file path")
+	}
+	tmpfile, err := os.CreateTemp("", "test_comp*.nsz")
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.Remove(tmpfile.Name())
 	//Test the made new file path
 	lib.settings.NSZCommandLine = "touch"
-	lib.fileCompressionRequests <- "/tmp/testingFiles.nsz"
+	lib.fileCompressionRequests <- &fileScanningInfo{
+		path: tmpfile.Name(),
+	}
 
-	result = <-lib.fileScanRequests
-	if result == nil {
-		t.Error("bad result")
-	} else {
-		if result.fileRemoved {
-			t.Error("should report file created")
-		}
-		if result.path != "/tmp/testingFiles.nsz" {
-			t.Error("should report file path")
-		}
+	result = <-lib.fileMetaScanRequests
+
+	if result.fileWasDeleted {
+		t.Error("should report file created")
+	}
+	if result.path != tmpfile.Name() {
+		t.Error("should report file path")
 	}
 }

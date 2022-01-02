@@ -45,3 +45,11 @@ Note: Only the header_key, and the key_area_key_application_XX keys are required
 
 The code is split into a bunch of sperate packages to keep the code ever so slightly re-usable.
 There is still a bunch of interdependencies to be cleaned up as time permits.
+
+## Architecture
+
+On startup a _bunch_ of workers are started. These are used to perform various actions during library management
+
+When a file is "scanned" into the library, the following chain of events occurs
+
+`Scanner` -> `Metadata parser` -> `Validator` -> `Organiser` -> `Cleanup`

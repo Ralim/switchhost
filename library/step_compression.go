@@ -23,53 +23,45 @@ func (lib *Library) compressionWorker() {
 			return
 		case request := <-lib.fileCompressionRequests:
 			//For each requested file, run it through NSZ and check output
-			if utilities.Exists(request) {
-				log.Info().Str("path", request).Msg("Starting compression")
-				err := lib.NSZCompressFile(request)
-				if err != nil {
-					log.Err(err).Msg("NSZ compression failed")
-					//Cleanup output if it made one
-					if len(request) > 3 {
-						newpath := request[0:len(request)-1] + "z"
+			if request != nil && utilities.Exists(request.path) {
+				if len(request.path) > 3 {
+					newpath := request.path[0:len(request.path)-1] + "z"
+					log.Info().Str("path", request.path).Msg("Starting compression")
+					err := lib.NSZCompressFile(request.path)
+					if err != nil {
+						log.Err(err).Msg("NSZ compression failed")
+						//Cleanup output if it made one
 						if utilities.Exists(newpath) {
 							if err := os.Remove(newpath); err != nil {
 								log.Error().Err(err).Msg("cleanup output from failing NSZ failed")
 							}
 						}
-					}
-				} else {
-					log.Info().Str("path", request).Msg("Compression complete")
-					// Check if the source file has been deleted
-					// Check if the expected output file is made
+					} else {
+						log.Info().Str("path", request.path).Msg("Compression complete")
+						// Check if the source file has been deleted
+						// Check if the expected output file is made
 
-					if !utilities.Exists(request) {
-						//Source file has been deleted, notify library
-						event := &scanRequest{
-							path:             request,
-							isEndOfStartScan: false,
-							isNotifierBased:  true,
-							fileRemoved:      true,
+						if !utilities.Exists(request.path) {
+							//Source file has been deleted, notify library
+							event := &fileScanningInfo{
+								path:           request.path,
+								fileWasDeleted: true,
+							}
+							lib.fileOrganisationRequests <- event
 						}
-						lib.fileScanRequests <- event
-					}
-					//Figure out the output file path
-					newpath := request[0:len(request)-1] + "z"
-					if utilities.Exists(newpath) {
-						//Source file has been deleted, notify library
-						event := &scanRequest{
-							path:             newpath,
-							isEndOfStartScan: false,
-							isNotifierBased:  true,
-							fileRemoved:      false,
+						if utilities.Exists(newpath) {
+							//New file exists, put it through the scanner
+							event := &fileScanningInfo{
+								path: newpath,
+							}
+							lib.fileMetaScanRequests <- event
 						}
-						lib.fileScanRequests <- event
 					}
 				}
 			}
 		}
 	}
 }
-
 func (lib *Library) NSZCompressFile(path string) error {
 	//Call out to external tool using the user provided base string
 	parts := strings.Split(lib.settings.NSZCommandLine, " ")
