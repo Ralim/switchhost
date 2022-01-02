@@ -158,7 +158,7 @@ func (s *Settings) GetAllScanFolders() []string {
 	return res
 }
 
-func (s *Settings) SetupLogging(output io.Writer, termElement io.Writer) {
+func (s *Settings) SetupLogging(termElement io.Writer) {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.SetGlobalLevel(zerolog.Level(s.LogLevel))
 	var consoleWriter io.Writer
@@ -168,9 +168,8 @@ func (s *Settings) SetupLogging(output io.Writer, termElement io.Writer) {
 			TimeFormat: zerolog.TimeFormatUnix,
 		}
 	} else {
-
 		consoleWriter = zerolog.ConsoleWriter{
-			Out:        output,
+			Out:        os.Stdout,
 			TimeFormat: zerolog.TimeFormatUnix,
 		}
 	}

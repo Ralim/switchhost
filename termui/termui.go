@@ -91,8 +91,9 @@ func (t *TermUI) RegisterTask(taskName string) *TaskState {
 	t.Lock()
 	defer t.Unlock()
 	index := len(t.tasks) + 1
-	row := index / 2
-	colindex := (index % 2) * 2
+	//Todo, support 2xN or 4xN ColsxRows
+	row := index
+	colindex := index
 	t.app.QueueUpdateDraw(func() {
 		t.statusTable.SetCellSimple(row, colindex, taskName)
 	})
