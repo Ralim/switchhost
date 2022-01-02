@@ -28,8 +28,9 @@ func (lib *Library) fileorganisationWorker() {
 	defer log.Info().Msg("fileorganisationWorker task exiting")
 	var status *termui.TaskState
 	if lib.ui != nil {
-		status := lib.ui.RegisterTask("Organisation")
+		status = lib.ui.RegisterTask("Organisation")
 		defer status.UpdateStatus("Exited")
+		status.UpdateStatus("Idle")
 	}
 
 	for {
