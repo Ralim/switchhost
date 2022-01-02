@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ralim/switchhost/formats"
+	"github.com/ralim/switchhost/termui"
 	"github.com/ralim/switchhost/utilities"
 	"github.com/rs/zerolog/log"
 )
@@ -25,8 +26,11 @@ const (
 func (lib *Library) fileorganisationWorker() {
 	defer lib.waitgroup.Done()
 	defer log.Info().Msg("fileorganisationWorker task exiting")
-	status := lib.ui.RegisterTask("Organisation")
-	defer status.UpdateStatus("Exited")
+	var status *termui.TaskState
+	if lib.ui != nil {
+		status := lib.ui.RegisterTask("Organisation")
+		defer status.UpdateStatus("Exited")
+	}
 
 	for {
 		select {
@@ -36,13 +40,19 @@ func (lib *Library) fileorganisationWorker() {
 		case event := <-lib.fileOrganisationRequests:
 			fileShortName := path.Base(event.path)
 			if event.fileWasDeleted {
-				status.UpdateStatus(fmt.Sprintf("Handling Delete of %s", fileShortName))
+				if status != nil {
+					status.UpdateStatus(fmt.Sprintf("Handling Delete of %s", fileShortName))
+				}
 				lib.sortFileHandleRemoved(event)
 			} else {
 				info := event.metadata
-				status.UpdateStatus(fmt.Sprintf("Sorting %s", fileShortName))
+				if status != nil {
+					status.UpdateStatus(fmt.Sprintf("Sorting %s", fileShortName))
+				}
 				fileResultingPath := lib.sortFileIfApplicable(info, event.path, event.mustCleanupFile)
-				status.UpdateStatus(fmt.Sprintf("Processing %s", fileShortName))
+				if status != nil {
+					status.UpdateStatus(fmt.Sprintf("Processing %s", fileShortName))
+				}
 				//Add to our repo, moved or not
 				record := &FileOnDiskRecord{
 					Path:    fileResultingPath,
@@ -57,7 +67,9 @@ func (lib *Library) fileorganisationWorker() {
 
 				lib.AddFileRecord(record)
 				lib.postFileAddToLibraryHooks(event)
-				status.UpdateStatus("Idle")
+				if status != nil {
+					status.UpdateStatus("Idle")
+				}
 			}
 		}
 	}

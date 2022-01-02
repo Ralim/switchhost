@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/ralim/switchhost/termui"
 	"github.com/ralim/switchhost/utilities"
 	"github.com/rs/zerolog/log"
 )
@@ -15,9 +16,12 @@ import (
 func (lib *Library) cleanupFolderWorker() {
 	defer lib.waitgroup.Done()
 	defer log.Info().Msg("Cleanup task exiting")
-	status := lib.ui.RegisterTask("Cleanup")
-	defer status.UpdateStatus("Exited")
-	status.UpdateStatus("Idle")
+	var status *termui.TaskState
+	if lib.ui != nil {
+		status = lib.ui.RegisterTask("Cleanup")
+		defer status.UpdateStatus("Exited")
+		status.UpdateStatus("Idle")
+	}
 	for {
 		select {
 		case <-lib.exit:
@@ -38,9 +42,13 @@ func (lib *Library) cleanupFolderWorker() {
 						}
 					}
 					if ok {
-						status.UpdateStatus(parent)
+						if status != nil {
+							status.UpdateStatus(parent)
+						}
 						recursivelyCheckForEmptyFolders(parent)
-						status.UpdateStatus("Idle")
+						if status != nil {
+							status.UpdateStatus("Idle")
+						}
 					}
 				}
 			}

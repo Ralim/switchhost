@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/ralim/switchhost/termui"
 	"github.com/rs/zerolog/log"
 )
 
@@ -13,10 +14,15 @@ import (
 // RunScan runs a scan of all "normal" scan folders
 func (lib *Library) RunScan() {
 	defer lib.waitgroup.Done()
-	statusElement := lib.ui.RegisterTask("File Scanner")
-	defer statusElement.UpdateStatus("Done")
+	var status *termui.TaskState
+	if lib.ui != nil {
+		status = lib.ui.RegisterTask("File Scanner")
+		defer status.UpdateStatus("Done")
+	}
 	for _, folder := range lib.settings.GetAllScanFolders() {
-		statusElement.UpdateStatus(folder)
+		if status != nil {
+			status.UpdateStatus(folder)
+		}
 		if err := lib.ScanFolder(folder); err == nil {
 			lib.folderCleanupRequests <- folder
 		}

@@ -22,7 +22,7 @@ func maketestServer(t *testing.T) (*Server, *library.Library, string) {
 	settings := settings.NewSettings(path.Join(temp_folder, "settings.json"))
 	settings.ServerMOTD = "SwitchRoooooot" // using different one to ensure its honoured
 	titledb := titledb.CreateTitlesDB(settings)
-	lib := library.NewLibrary(titledb, settings)
+	lib := library.NewLibrary(titledb, settings, nil)
 	server := NewServer(lib, titledb, settings)
 	return server, lib, temp_folder
 }

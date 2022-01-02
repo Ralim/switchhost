@@ -21,7 +21,10 @@ func TestNSZ(t *testing.T) {
 	}
 	crypter.Seek(uint64(i))
 	output := make([]byte, len(expectedOutput))
-	crypter.Read(output)
+	_, err = crypter.Read(output)
+	if err != nil {
+		t.Error(err)
+	}
 	if !bytes.Equal(output, expectedOutput) {
 		t.Error("Mismatched outputs", output, expectedOutput)
 	}

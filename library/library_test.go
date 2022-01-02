@@ -18,7 +18,7 @@ func TestStopStart(t *testing.T) {
 	sett := settings.Settings{
 		NSZCommandLine: "sleep 0.1",
 	}
-	lib := NewLibrary(nil, &sett)
+	lib := NewLibrary(nil, &sett, nil)
 
 	//Inject some pending requests
 	lib.fileCompressionRequests <- &fileScanningInfo{

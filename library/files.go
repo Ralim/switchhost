@@ -73,6 +73,9 @@ func (lib *Library) LookupFileInfo(file FileOnDiskRecord) (titledb.TitleDBEntry,
 }
 
 func (lib *Library) AddFileRecord(file *FileOnDiskRecord) {
+	if lib.ui != nil {
+		defer lib.ui.Statistics.Redraw()
+	}
 	//Depending on game type add to the appropriate record
 	//Game updates have the same ProgramId as the main application, except with bitmask 0x800 set.
 	//https://wiki.gbatemp.net/wiki/List_of_Switch_homebrew_titleID
@@ -97,12 +100,21 @@ func (lib *Library) AddFileRecord(file *FileOnDiskRecord) {
 	}
 	if baseTitle == file.TitleID {
 		//Check if we are attempting an overwrite
+		if oldValue.BaseTitle == nil && lib.ui != nil {
+			lib.ui.Statistics.TotalTitles++
+		}
 		oldValue.BaseTitle = lib.handleFileCollision(oldValue.BaseTitle, file)
 	} else if (file.TitleID & 0x0000000000000800) == 0x800 {
+		if oldValue.Update == nil && lib.ui != nil {
+			lib.ui.Statistics.TotalUpdates++
+		}
 		oldValue.Update = lib.handleFileCollision(oldValue.Update, file)
 	} else {
 		if oldValue.DLC == nil {
 			oldValue.DLC = []FileOnDiskRecord{*file}
+			if lib.ui != nil {
+				lib.ui.Statistics.TotalDLC++
+			}
 		} else {
 			matched := false
 			for index, oldFile := range oldValue.DLC {
@@ -113,6 +125,9 @@ func (lib *Library) AddFileRecord(file *FileOnDiskRecord) {
 			}
 			if !matched {
 				oldValue.DLC = append(oldValue.DLC, *file)
+				if lib.ui != nil {
+					lib.ui.Statistics.TotalDLC++
+				}
 			}
 		}
 	}

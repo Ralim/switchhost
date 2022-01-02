@@ -124,7 +124,9 @@ func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequ
 		//This is a data partition, look to match it against one of the hashes, and if it matches then check its checksum
 
 		hasher := sha256.New()
-		reader.Seek(int64(pfs0File.StartOffset)+offset, io.SeekStart)
+		if _, err := reader.Seek(int64(pfs0File.StartOffset)+offset, io.SeekStart); err != nil {
+			return err
+		}
 		if _, err := io.CopyN(hasher, reader, int64(pfs0File.Size)); err != nil {
 			return err
 		}
@@ -151,7 +153,9 @@ func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequ
 		//Compressed partition, need to handle decompression
 		hasher := sha256.New()
 
-		reader.Seek(int64(pfs0File.StartOffset)+offset, io.SeekStart)
+		if _, err := reader.Seek(int64(pfs0File.StartOffset)+offset, io.SeekStart); err != nil {
+			return err
+		}
 		uncompressedheaderLength := UNCOMPRESSABLE_HEADER_SIZE
 		if pfs0File.Size < uint64(uncompressedheaderLength) {
 			uncompressedheaderLength = int64(pfs0File.Size)

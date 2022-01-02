@@ -10,6 +10,7 @@ import (
 
 	"github.com/ralim/switchhost/formats"
 	cnmt "github.com/ralim/switchhost/formats/CNMT"
+	"github.com/ralim/switchhost/termui"
 	"github.com/ralim/switchhost/utilities"
 	"github.com/rs/zerolog/log"
 )
@@ -21,9 +22,12 @@ import (
 func (lib *Library) fileMetadataWorker() {
 	defer lib.waitgroup.Done()
 	defer log.Info().Msg("fileMetadataWorker task exiting")
-	status := lib.ui.RegisterTask("Metadata")
-	defer status.UpdateStatus("Exited")
-	status.UpdateStatus("Idle")
+	var status *termui.TaskState
+	if lib.ui != nil {
+		status = lib.ui.RegisterTask("Metadata")
+		defer status.UpdateStatus("Exited")
+		status.UpdateStatus("Idle")
+	}
 
 	//For now limited to having to use keys to read files, TODO: Regex the deets out of the file name
 	if lib.keys == nil {
@@ -39,7 +43,9 @@ func (lib *Library) fileMetadataWorker() {
 		case event := <-lib.fileMetaScanRequests:
 			// If the file can be parsed, update metadata and push along
 			// Otherwise handle cleanup
-			status.UpdateStatus(path.Base(event.path))
+			if status != nil {
+				status.UpdateStatus(path.Base(event.path))
+			}
 			err := lib.setFileMeta(event)
 			if err == nil {
 				// File parsed well; so sent it to the next stage
@@ -50,7 +56,9 @@ func (lib *Library) fileMetadataWorker() {
 					os.Remove(event.path)
 				}
 			}
-			status.UpdateStatus("Idle")
+			if status != nil {
+				status.UpdateStatus("Idle")
+			}
 		}
 	}
 }

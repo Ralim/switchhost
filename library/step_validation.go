@@ -6,20 +6,24 @@ import (
 	"strings"
 
 	"github.com/ralim/switchhost/formats"
+	"github.com/ralim/switchhost/termui"
 	"github.com/rs/zerolog/log"
 )
 
 func (lib *Library) fileValidationWorker() {
 	defer lib.waitgroup.Done()
 	defer log.Info().Msg("fileValidationWorker task exiting")
-	status := lib.ui.RegisterTask("Validation")
-	defer status.UpdateStatus("Exited")
+	var status *termui.TaskState
+	if lib.ui != nil {
+		status = lib.ui.RegisterTask("Validation")
+		defer status.UpdateStatus("Exited")
+		status.UpdateStatus("Idle")
+	}
 
 	if lib.keys == nil {
 		log.Error().Msg("No keys are loaded, so file validations can't work.")
 		return
 	}
-	status.UpdateStatus("Idle")
 
 	for {
 		select {
@@ -28,7 +32,9 @@ func (lib *Library) fileValidationWorker() {
 			return
 		case event := <-lib.fileValidationScanRequests:
 			requestedPath := event.path
-			status.UpdateStatus(path.Base(event.path))
+			if status != nil {
+				status.UpdateStatus(path.Base(event.path))
+			}
 
 			// This file has had its metadata parsed, so we want to validate integrity if desired
 			// If it parses validation send it on, if not.. handle it
@@ -47,7 +53,9 @@ func (lib *Library) fileValidationWorker() {
 					log.Warn().Str("path", requestedPath).Msg("File failed valiation, not putting in library")
 				}
 			}
-			status.UpdateStatus("Idle")
+			if status != nil {
+				status.UpdateStatus("Idle")
+			}
 
 		}
 	}
