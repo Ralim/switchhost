@@ -34,7 +34,7 @@ func NewServer(lib *library.Library, titledb *titledb.TitlesDB, settings *settin
 }
 
 func (server *Server) Run() {
-	log.Info().Msg("Starting servers")
+	log.Info().Msg("Starting servers, press ctrl-c to exit cleanly")
 
 	server.ftpServer = virtualftp.CreateVirtualFTP(server.library, server.settings)
 	go server.StartHTTP()
