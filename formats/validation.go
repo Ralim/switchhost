@@ -22,31 +22,6 @@ import (
 
 const UNCOMPRESSABLE_HEADER_SIZE int64 = 0x4000
 
-type NSZSection struct {
-	offset        int64
-	size          int64
-	cryptoType    int64
-	pad           int64
-	cryptoKey     []byte
-	cryptoCounter []byte
-}
-
-func NSZSectionFromReader(reader ReaderRequired) (*NSZSection, error) {
-	headerSize := (4 * 8) + (16 * 2)
-	data := make([]byte, headerSize)
-	if _, err := reader.Read(data); err != nil {
-		return nil, err
-	}
-	nz := &NSZSection{}
-	nz.offset = int64(binary.LittleEndian.Uint64(data[0:8]))
-	nz.size = int64(binary.LittleEndian.Uint64(data[8:16]))
-	nz.cryptoType = int64(binary.LittleEndian.Uint64(data[16:24]))
-	nz.pad = int64(binary.LittleEndian.Uint64(data[24:32]))
-	nz.cryptoKey = data[32:48]
-	nz.cryptoCounter = data[48:64]
-	return nz, nil
-}
-
 // Validations, trying to sanity check our files are intact
 
 // Find the CNMT section in the file, as this holds the content metadaata, then inside this, has hashes
@@ -82,175 +57,160 @@ func ValidateNSPHash(keystore *keystore.Keystore, settings *settings.Settings, r
 		}
 	}
 	for _, pfs0File := range pfs0Header.FileEntryTable {
+		if err := validatePFS0File(pfs0File, reader, fileCNMT); err != nil {
+			return err
+		}
+	}
 
-		if strings.HasSuffix(pfs0File.Name, ".nca") && !strings.HasSuffix(pfs0File.Name, "cnmt.nca") {
-			//This is a data partition, look to match it against one of the hashes, and if it matches then check its checksum
+	return nil
+}
 
-			hasher := sha256.New()
-			reader.Seek(int64(pfs0File.StartOffset), io.SeekStart)
-			if _, err := io.CopyN(hasher, reader, int64(pfs0File.Size)); err != nil {
-				return err
-			}
-			partitionHash := hasher.Sum(nil)
+func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequired, fileCNMT *cnmt.ContentMetaAttributes) error {
 
-			validated := false
-			for _, c := range fileCNMT.Contents {
-				if strings.HasPrefix(pfs0File.Name, c.ID) {
-					matchingHash := c
-					// Read out the partition
+	if strings.HasSuffix(pfs0File.Name, ".nca") && !strings.HasSuffix(pfs0File.Name, "cnmt.nca") {
+		//This is a data partition, look to match it against one of the hashes, and if it matches then check its checksum
 
-					if !bytes.Equal(partitionHash, matchingHash.Hash) {
-						return errors.New("hash failed validation")
-					}
-					log.Info().Str("part", pfs0File.Name).Msg("validated correctly")
-					validated = true
+		hasher := sha256.New()
+		reader.Seek(int64(pfs0File.StartOffset), io.SeekStart)
+		if _, err := io.CopyN(hasher, reader, int64(pfs0File.Size)); err != nil {
+			return err
+		}
+		partitionHash := hasher.Sum(nil)
+
+		validated := false
+		for _, c := range fileCNMT.Contents {
+			if strings.HasPrefix(pfs0File.Name, c.ID) {
+				matchingHash := c
+				// Read out the partition
+
+				if !bytes.Equal(partitionHash, matchingHash.Hash) {
+					return errors.New("hash failed validation")
 				}
+				log.Info().Str("part", pfs0File.Name).Msg("validated correctly")
+				validated = true
 			}
-			if !validated {
-				return fmt.Errorf("partition >%s< could not be validated as no hash in CNMT", pfs0File.Name)
-			}
+		}
+		if !validated {
+			return fmt.Errorf("partition >%s< could not be validated as no hash in CNMT", pfs0File.Name)
+		}
 
-		} else if strings.HasSuffix(pfs0File.Name, ".ncz") {
-			//Compressed partition, need to handle decompression
+	} else if strings.HasSuffix(pfs0File.Name, ".ncz") {
+		//Compressed partition, need to handle decompression
 
-			hasher := sha256.New()
-			reader.Seek(int64(pfs0File.StartOffset), io.SeekStart)
-			uncompressedheaderLength := UNCOMPRESSABLE_HEADER_SIZE
-			if pfs0File.Size < uint64(uncompressedheaderLength) {
-				uncompressedheaderLength = int64(pfs0Header.Size)
-			}
-			if _, err := io.CopyN(hasher, reader, int64(uncompressedheaderLength)); err != nil {
+		hasher := sha256.New()
+		reader.Seek(int64(pfs0File.StartOffset), io.SeekStart)
+		uncompressedheaderLength := UNCOMPRESSABLE_HEADER_SIZE
+		if pfs0File.Size < uint64(uncompressedheaderLength) {
+			uncompressedheaderLength = int64(pfs0File.Size)
+		}
+		if _, err := io.CopyN(hasher, reader, int64(uncompressedheaderLength)); err != nil {
+			return err
+		}
+
+		// compresedAreaLength := pfs0File.Size - uint64(uncompressedheaderLength)
+		if pfs0File.Size > uint64(uncompressedheaderLength) {
+			//Use zstandard to decompress the rest of the file
+			magic := make([]byte, 8)
+			_, err := reader.Read(magic)
+			if err != nil {
 				return err
 			}
-
-			// compresedAreaLength := pfs0File.Size - uint64(uncompressedheaderLength)
-			if pfs0File.Size > uint64(uncompressedheaderLength) {
-				//Use zstandard to decompress the rest of the file
-				magic := make([]byte, 8)
-				_, err := reader.Read(magic)
+			if !bytes.Equal(magic, []byte("NCZSECTN")) {
+				return fmt.Errorf("failed to validate partition >%s<, bad NCZ >NCZSECTN< header >%v<", pfs0File.Name, string(magic))
+			}
+			_, err = reader.Read(magic)
+			if err != nil {
+				return err
+			}
+			sectionCount := int64(binary.LittleEndian.Uint64(magic))
+			sections := make([]nsz.NSZSection, sectionCount)
+			//Read out the section headers
+			for i := 0; i < int(sectionCount); i++ {
+				sect, err := nsz.NSZSectionFromReader(reader)
 				if err != nil {
 					return err
 				}
-				if !bytes.Equal(magic, []byte("NCZSECTN")) {
-					return fmt.Errorf("failed to validate partition >%s<, bad NCZ >NCZSECTN< header >%v<", pfs0File.Name, string(magic))
-				}
-				_, err = reader.Read(magic)
+				sections[i] = *sect
+			}
+
+			if (sections[0].Offset - UNCOMPRESSABLE_HEADER_SIZE) > 0 {
+				section := nsz.NSZSectionDummy(UNCOMPRESSABLE_HEADER_SIZE, sections[0].Offset-UNCOMPRESSABLE_HEADER_SIZE)
+				sect := []nsz.NSZSection{section}
+				sections = append(sect, sections...)
+			}
+
+			_, err = reader.Read(magic)
+			if err != nil {
+				return err
+			}
+			//Step back after reading magic
+			_, err = reader.Seek(-8, io.SeekCurrent)
+			if err != nil {
+				return err
+			}
+			useBlockDecompressor := false
+			if bytes.Equal(magic, []byte("NCZBLOCK")) {
+				useBlockDecompressor = true
+			}
+			var decompressingReader io.Reader
+			if useBlockDecompressor {
+				blockDecompressor, err := nsz.NewBlockDecompressor(reader)
+
 				if err != nil {
 					return err
 				}
-				sectionCount := int64(binary.LittleEndian.Uint64(magic))
-				sections := make([]NSZSection, sectionCount)
-				//Read out the section headers
-				for i := 0; i < int(sectionCount); i++ {
-					sect, err := NSZSectionFromReader(reader)
+				decompressingReader = blockDecompressor
+			} else {
+
+				zstdReader, err := zstd.NewReader(reader)
+				if err != nil {
+					return err
+				}
+
+				decompressingReader = zstdReader
+			}
+			for sectNum, section := range sections {
+				// Chain varies by crypto type
+				// If crypto type is 3 or 4, then we want to do: file -> zstandard -> crypto -> hash
+				// else  then we want to do                    : file -> zstandard -> hash
+				offset := section.Offset
+				var prehashReader io.Reader
+				// Now we either chain this into crypto or the hash directly
+				if section.CryptoType == 3 || section.CryptoType == 4 {
+					cipherStream, err := aesctr.NewAESCTREncrypter(decompressingReader, section.CryptoKey, section.CryptoCounter, []byte{})
 					if err != nil {
 						return err
 					}
-					sections[i] = *sect
-				}
-
-				if (sections[0].offset - UNCOMPRESSABLE_HEADER_SIZE) > 0 {
-					section := NSZSection{
-						size:       UNCOMPRESSABLE_HEADER_SIZE,
-						offset:     sections[0].offset - UNCOMPRESSABLE_HEADER_SIZE,
-						cryptoType: 0,
+					//On section 0, account for the jump over the uncompressed first chunk
+					if sectNum == 0 {
+						uncompressedSize := int64(uncompressedheaderLength) - section.Offset
+						if uncompressedSize > 0 {
+							offset += uncompressedSize
+						}
 					}
-					sect := []NSZSection{section}
-					sections = append(sect, sections...)
-				}
+					cipherStream.Seek(uint64(offset))
+					prehashReader = cipherStream
 
-				_, err = reader.Read(magic)
-				if err != nil {
-					return err
-				}
-				//Step back after reading magic
-				_, err = reader.Seek(-8, io.SeekCurrent)
-				if err != nil {
-					return err
-				}
-				useBlockDecompressor := false
-				if bytes.Equal(magic, []byte("NCZBLOCK")) {
-					useBlockDecompressor = true
-				}
-				var decompressingReader io.Reader
-				if useBlockDecompressor {
-					blockDecompressor, err := nsz.NewBlockDecompressor(reader)
-
-					if err != nil {
-						return err
-					}
-					decompressingReader = blockDecompressor
 				} else {
-
-					zstdReader, err := zstd.NewReader(reader)
-					if err != nil {
-						return err
-					}
-
-					decompressingReader = zstdReader
+					prehashReader = decompressingReader
 				}
-				for sectNum, section := range sections {
-					// Chain varies by crypto type
-					// If crypto type is 3 or 4, then we want to do: file -> zstandard -> crypto -> hash
-					// else  then we want to do                    : file -> zstandard -> hash
-					offset := section.offset
-					var prehashReader io.Reader
-					// Now we either chain this into crypto or the hash directly
-					if section.cryptoType == 3 || section.cryptoType == 4 {
-						cipherStream, err := aesctr.NewAESCTREncrypter(decompressingReader, section.cryptoKey, section.cryptoCounter, []byte{})
-						if err != nil {
-							return err
-						}
-						//On section 0, account for the jump over the uncompressed first chunk
-						if sectNum == 0 {
-							uncompressedSize := int64(uncompressedheaderLength) - section.offset
-							if uncompressedSize > 0 {
-								offset += uncompressedSize
-							}
-						}
-						cipherStream.Seek(uint64(offset))
-						prehashReader = cipherStream
+				//Now we can copy all the bytes into the hasher
 
-					} else {
-						prehashReader = decompressingReader
-					}
-					//Now we can copy all the bytes into the hasher
-
-					_, err = io.CopyN(hasher, prehashReader, section.size-(offset-section.offset))
-					if err != nil {
-						return err
-					}
-
+				_, err = io.CopyN(hasher, prehashReader, section.Size-(offset-section.Offset))
+				if err != nil {
+					return err
 				}
-				partitionHash := hasher.Sum(nil)
 
-				validated := false
-				for _, c := range fileCNMT.Contents {
-					if strings.HasPrefix(pfs0File.Name, c.ID) {
-						matchingHash := c
-
-						if !bytes.Equal(partitionHash, matchingHash.Hash) {
-							return fmt.Errorf("hash failed validation %X != %X", partitionHash, matchingHash.Hash)
-						}
-						log.Debug().Str("part", pfs0File.Name).Msg("validated correctly")
-						validated = true
-					}
-				}
-				if !validated {
-					return fmt.Errorf("partition >%s< could not be validated as no hash in CNMT", pfs0File.Name)
-				}
 			}
-
 			partitionHash := hasher.Sum(nil)
 
 			validated := false
 			for _, c := range fileCNMT.Contents {
 				if strings.HasPrefix(pfs0File.Name, c.ID) {
 					matchingHash := c
-					// Read out the partition
 
 					if !bytes.Equal(partitionHash, matchingHash.Hash) {
-						return errors.New("hash failed validation")
+						return fmt.Errorf("hash failed validation %X != %X", partitionHash, matchingHash.Hash)
 					}
 					log.Debug().Str("part", pfs0File.Name).Msg("validated correctly")
 					validated = true
@@ -260,7 +220,25 @@ func ValidateNSPHash(keystore *keystore.Keystore, settings *settings.Settings, r
 				return fmt.Errorf("partition >%s< could not be validated as no hash in CNMT", pfs0File.Name)
 			}
 		}
-	}
 
+		partitionHash := hasher.Sum(nil)
+
+		validated := false
+		for _, c := range fileCNMT.Contents {
+			if strings.HasPrefix(pfs0File.Name, c.ID) {
+				matchingHash := c
+				// Read out the partition
+
+				if !bytes.Equal(partitionHash, matchingHash.Hash) {
+					return errors.New("hash failed validation")
+				}
+				log.Debug().Str("part", pfs0File.Name).Msg("validated correctly")
+				validated = true
+			}
+		}
+		if !validated {
+			return fmt.Errorf("partition >%s< could not be validated as no hash in CNMT", pfs0File.Name)
+		}
+	}
 	return nil
 }
