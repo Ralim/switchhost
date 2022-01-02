@@ -169,6 +169,16 @@ func (lib *Library) validateFile(filepath string) bool {
 				return false
 			}
 		} else if ext[0:3] == ".xc" {
+			file, err := os.Open(filepath)
+			if err != nil {
+				return true
+			}
+			defer file.Close()
+			if err := formats.ValidateXCIHash(lib.keys, lib.settings, file); err != nil {
+				log.Warn().Str("path", filepath).Err(err).Msg("Failed validation")
+				return false
+			}
+
 		} else {
 			return true // can't validate
 		}
