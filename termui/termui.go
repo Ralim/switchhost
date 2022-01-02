@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/rivo/tview"
-	"github.com/rs/zerolog/log"
 )
 
 // TermUI is the wrapper for the basic terminal interface provided
@@ -96,7 +95,6 @@ func (t *TermUI) sortTasks() {
 	for i := 0; i < len(t.tasks); i++ {
 		t.tasks[i].row = i + 1
 		t.tasks[i].redraw()
-		log.Info().Msg(t.tasks[i].name)
 	}
 }
 func (t *TermUI) RegisterTask(taskName string) *TaskState {
