@@ -13,7 +13,10 @@ import (
 // RunScan runs a scan of all "normal" scan folders
 func (lib *Library) RunScan() {
 	defer lib.waitgroup.Done()
+	statusElement := lib.ui.RegisterTask("File Scanner")
+	defer statusElement.UpdateStatus("Done")
 	for _, folder := range lib.settings.GetAllScanFolders() {
+		statusElement.UpdateStatus(folder)
 		if err := lib.ScanFolder(folder); err == nil {
 			lib.folderCleanupRequests <- folder
 		}

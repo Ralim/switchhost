@@ -3,6 +3,7 @@ package library
 import (
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 
 	"github.com/ralim/switchhost/utilities"
@@ -16,6 +17,10 @@ func (lib *Library) compressionWorker() {
 	//Dequeue any requests off the queue and run the compression
 	defer lib.waitgroup.Done()
 	defer log.Info().Msg("Compression task exiting")
+	status := lib.ui.RegisterTask("Compression")
+	defer status.UpdateStatus("Exited")
+	status.UpdateStatus("Idle")
+
 	for {
 		select {
 		case <-lib.exit:
@@ -25,6 +30,8 @@ func (lib *Library) compressionWorker() {
 			//For each requested file, run it through NSZ and check output
 			if request != nil && utilities.Exists(request.path) {
 				if len(request.path) > 3 {
+					status.UpdateStatus(path.Base(request.path))
+
 					newpath := request.path[0:len(request.path)-1] + "z"
 					log.Info().Str("path", request.path).Msg("Starting compression")
 					err := lib.NSZCompressFile(request.path)
@@ -59,6 +66,7 @@ func (lib *Library) compressionWorker() {
 					}
 				}
 			}
+			status.UpdateStatus("Idle")
 		}
 	}
 }

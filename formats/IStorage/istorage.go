@@ -62,7 +62,7 @@ func ReadHeader(data []byte) (*Header, error) {
 // ReadFileEntries Will return all of the Fileentry records contained in the data
 func ReadFileEntries(data []byte, header Header) (map[string]FileEntry, error) {
 	if header.FileMetaTableOffset+header.FileMetaTableSize > uint64(len(data)) {
-		return nil, errors.New("data too small / bad header")
+		return nil, errors.New("file IStorage header is too short")
 	}
 	dirBytes := data[header.FileMetaTableOffset : header.FileMetaTableOffset+header.FileMetaTableSize]
 	result := map[string]FileEntry{}

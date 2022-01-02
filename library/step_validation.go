@@ -12,11 +12,14 @@ import (
 func (lib *Library) fileValidationWorker() {
 	defer lib.waitgroup.Done()
 	defer log.Info().Msg("fileValidationWorker task exiting")
+	status := lib.ui.RegisterTask("Validation")
+	defer status.UpdateStatus("Exited")
 
 	if lib.keys == nil {
 		log.Error().Msg("No keys are loaded, so file validations can't work.")
 		return
 	}
+	status.UpdateStatus("Idle")
 
 	for {
 		select {
@@ -25,6 +28,8 @@ func (lib *Library) fileValidationWorker() {
 			return
 		case event := <-lib.fileValidationScanRequests:
 			requestedPath := event.path
+			status.UpdateStatus(path.Base(event.path))
+
 			// This file has had its metadata parsed, so we want to validate integrity if desired
 			// If it parses validation send it on, if not.. handle it
 			shouldValidate := (lib.settings.ValidateLibrary && event.isInLibrary) || (lib.settings.ValidateNewFiles && !event.isInLibrary)
@@ -42,6 +47,7 @@ func (lib *Library) fileValidationWorker() {
 					log.Warn().Str("path", requestedPath).Msg("File failed valiation, not putting in library")
 				}
 			}
+			status.UpdateStatus("Idle")
 
 		}
 	}

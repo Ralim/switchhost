@@ -10,6 +10,7 @@ import (
 	"github.com/ralim/switchhost/formats"
 	"github.com/ralim/switchhost/keystore"
 	"github.com/ralim/switchhost/settings"
+	"github.com/ralim/switchhost/termui"
 	"github.com/ralim/switchhost/titledb"
 	"github.com/rs/zerolog/log"
 )
@@ -55,12 +56,14 @@ type Library struct {
 	// 5. Additionally, once a file is in the library, compression may be desired and thus it is passed here
 	fileCompressionRequests chan *fileScanningInfo
 	exit                    chan bool
+	ui                      *termui.TermUI
 }
 
-func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings) *Library {
+func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings, ui *termui.TermUI) *Library {
 	library := &Library{
 		titledb:  titledb,
 		settings: settings,
+		ui:       ui,
 		keys:     nil,
 		// Channels
 		fileMetaScanRequests:       make(chan *fileScanningInfo, ChannelDepth),
@@ -113,8 +116,9 @@ func (lib *Library) Start() {
 	go lib.fileorganisationWorker()
 
 	// Internal states of the chain (except organisation) run multiple workers to utilise more cores
-	// Process up to CPU count/2 steps at once
-	for i := 0; i < runtime.NumCPU()/2; i++ {
+	// Process up to CPU count steps at once for each type
+	// This will overschedule the tasks to run usually, but we are _super_ IO blocked so its usually OK
+	for i := 0; i < runtime.NumCPU(); i++ {
 		lib.waitgroup.Add(1)
 		go lib.fileMetadataWorker()
 

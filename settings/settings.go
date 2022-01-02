@@ -2,11 +2,13 @@ package settings
 
 import (
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	stdlog "log"
 	"os"
 	"strings"
 
+	"github.com/ralim/switchhost/termui"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -120,8 +122,6 @@ func NewSettings(path string) *Settings {
 	settings.cleanpaths()
 	// Save to preserve if we have added anything to the file, and drop no-longer used settings for clarity
 	settings.Save()
-	// Setup the logging
-	settings.setupLogging()
 	log.Info().Msg("Settings loaded, merged and saved")
 	return settings
 }
@@ -158,13 +158,22 @@ func (s *Settings) GetAllScanFolders() []string {
 	return res
 }
 
-func (s *Settings) setupLogging() {
+func (s *Settings) SetupLogging(termElement io.Writer) {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.SetGlobalLevel(zerolog.Level(s.LogLevel))
-	consoleWriter := zerolog.ConsoleWriter{
-		Out:        os.Stdout,
-		TimeFormat: zerolog.TimeFormatUnix,
+	var consoleWriter io.Writer
+	if termElement != nil {
+		consoleWriter = termui.TermUIWriter{
+			Out:        termElement,
+			TimeFormat: zerolog.TimeFormatUnix,
+		}
+	} else {
+		consoleWriter = zerolog.ConsoleWriter{
+			Out:        os.Stdout,
+			TimeFormat: zerolog.TimeFormatUnix,
+		}
 	}
+
 	stdlog.SetOutput(consoleWriter)
 	log.Logger = log.Output(consoleWriter)
 
