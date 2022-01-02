@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -57,7 +56,7 @@ func ValidateNSPHash(keystore *keystore.Keystore, settings *settings.Settings, r
 		}
 	}
 	for _, pfs0File := range pfs0Header.FileEntryTable {
-		if err := validatePFS0File(pfs0File, reader, fileCNMT); err != nil {
+		if err := validatePFS0File(pfs0File, reader, fileCNMT, 0); err != nil {
 			return err
 		}
 	}
@@ -114,22 +113,21 @@ func ValidateXCIHash(keystore *keystore.Keystore, settings *settings.Settings, r
 	}
 
 	for _, pfs0File := range secureHfs0.FileEntryTable {
-		fileOffset := secureOffset + int64(pfs0File.StartOffset)
-		reader.Seek(fileOffset, io.SeekStart)
-		if err := validatePFS0File(pfs0File, reader, fileCNMT); err != nil {
+		if err := validatePFS0File(pfs0File, reader, fileCNMT, secureOffset); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequired, fileCNMT *cnmt.ContentMetaAttributes) error {
+func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequired, fileCNMT *cnmt.ContentMetaAttributes, offset int64) error {
 
 	if strings.HasSuffix(pfs0File.Name, ".nca") && !strings.HasSuffix(pfs0File.Name, "cnmt.nca") {
 		//This is a data partition, look to match it against one of the hashes, and if it matches then check its checksum
 
 		hasher := sha256.New()
 		reader.Seek(int64(pfs0File.StartOffset), io.SeekStart)
+		fmt.Println(pfs0File.StartOffset)
 		if _, err := io.CopyN(hasher, reader, int64(pfs0File.Size)); err != nil {
 			return err
 		}
@@ -142,7 +140,7 @@ func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequ
 				// Read out the partition
 
 				if !bytes.Equal(partitionHash, matchingHash.Hash) {
-					return errors.New("hash failed validation")
+					return fmt.Errorf("hash failed validation; %X != %X", partitionHash, matchingHash.Hash)
 				}
 				log.Info().Str("part", pfs0File.Name).Msg("validated correctly")
 				validated = true
@@ -154,9 +152,9 @@ func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequ
 
 	} else if strings.HasSuffix(pfs0File.Name, ".ncz") {
 		//Compressed partition, need to handle decompression
-
 		hasher := sha256.New()
-		reader.Seek(int64(pfs0File.StartOffset), io.SeekStart)
+
+		reader.Seek(int64(pfs0File.StartOffset)+offset, io.SeekStart)
 		uncompressedheaderLength := UNCOMPRESSABLE_HEADER_SIZE
 		if pfs0File.Size < uint64(uncompressedheaderLength) {
 			uncompressedheaderLength = int64(pfs0File.Size)
@@ -165,7 +163,6 @@ func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequ
 			return err
 		}
 
-		// compresedAreaLength := pfs0File.Size - uint64(uncompressedheaderLength)
 		if pfs0File.Size > uint64(uncompressedheaderLength) {
 			//Use zstandard to decompress the rest of the file
 			magic := make([]byte, 8)
@@ -260,23 +257,6 @@ func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequ
 				}
 
 			}
-			partitionHash := hasher.Sum(nil)
-
-			validated := false
-			for _, c := range fileCNMT.Contents {
-				if strings.HasPrefix(pfs0File.Name, c.ID) {
-					matchingHash := c
-
-					if !bytes.Equal(partitionHash, matchingHash.Hash) {
-						return fmt.Errorf("hash failed validation %X != %X", partitionHash, matchingHash.Hash)
-					}
-					log.Debug().Str("part", pfs0File.Name).Msg("validated correctly")
-					validated = true
-				}
-			}
-			if !validated {
-				return fmt.Errorf("partition >%s< could not be validated as no hash in CNMT", pfs0File.Name)
-			}
 		}
 
 		partitionHash := hasher.Sum(nil)
@@ -288,7 +268,7 @@ func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequ
 				// Read out the partition
 
 				if !bytes.Equal(partitionHash, matchingHash.Hash) {
-					return errors.New("hash failed validation")
+					return fmt.Errorf("hash failed validation; %X != %X", partitionHash, matchingHash.Hash)
 				}
 				log.Debug().Str("part", pfs0File.Name).Msg("validated correctly")
 				validated = true
@@ -297,8 +277,6 @@ func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequ
 		if !validated {
 			return fmt.Errorf("partition >%s< could not be validated as no hash in CNMT", pfs0File.Name)
 		}
-	} else {
-		fmt.Println("validation skipped", pfs0File.Name)
 	}
 	return nil
 }
