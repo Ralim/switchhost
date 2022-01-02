@@ -139,7 +139,7 @@ func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequ
 				if !bytes.Equal(partitionHash, matchingHash.Hash) {
 					return fmt.Errorf("hash failed validation; (no compression) %X != %X", partitionHash, matchingHash.Hash)
 				}
-				log.Info().Str("part", pfs0File.Name).Msg("validated correctly (no compression)")
+				log.Debug().Str("part", pfs0File.Name).Msg("validated correctly (no compression)")
 				validated = true
 			}
 		}
@@ -265,9 +265,9 @@ func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequ
 				// Read out the partition
 
 				if !bytes.Equal(partitionHash, matchingHash.Hash) {
-					return fmt.Errorf("hash failed validation (compress); %X != %X", partitionHash, matchingHash.Hash)
+					return fmt.Errorf("hash failed validation (compressed); %X != %X", partitionHash, matchingHash.Hash)
 				}
-				log.Info().Str("part", pfs0File.Name).Msg("validated correctly (compress)")
+				log.Debug().Str("part", pfs0File.Name).Msg("validated correctly (compressed)")
 				validated = true
 			}
 		}
