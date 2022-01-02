@@ -1,7 +1,6 @@
 package library
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"strings"

@@ -212,6 +212,7 @@ func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequ
 					return err
 				}
 				decompressingReader = blockDecompressor
+				defer blockDecompressor.Close()
 			} else {
 
 				zstdReader, err := zstd.NewReader(reader)
@@ -220,6 +221,7 @@ func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequ
 				}
 
 				decompressingReader = zstdReader
+				defer zstdReader.Close()
 			}
 			for sectNum, section := range sections {
 				// Chain varies by crypto type
