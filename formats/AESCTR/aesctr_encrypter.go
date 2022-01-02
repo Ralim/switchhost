@@ -2,7 +2,6 @@ package aesctr
 
 import (
 	"crypto/aes"
-	"errors"
 	"fmt"
 	"io"
 )
@@ -15,6 +14,8 @@ import (
 type AESCTREncrypter struct {
 	sourceStream io.Reader
 	counter      *ctr
+
+	backbuffer []byte
 }
 
 func NewAESCTREncrypter(reader io.Reader, key, prefix, postfix []byte) (*AESCTREncrypter, error) {
@@ -24,6 +25,7 @@ func NewAESCTREncrypter(reader io.Reader, key, prefix, postfix []byte) (*AESCTRE
 	}
 	return &AESCTREncrypter{
 		sourceStream: reader,
+		backbuffer:   []byte{},
 		counter:      Newctr(aesBlockCipher, aesBlockCipher.BlockSize(), prefix, postfix),
 	}, nil
 }
@@ -33,23 +35,45 @@ func (A *AESCTREncrypter) Seek(i uint64) {
 }
 func (A *AESCTREncrypter) Read(p []byte) (int, error) {
 	//Read up to N bytes out, block aligned
-	blockSize := A.counter.Blocksize
-	n := len(p)
-	if n%blockSize != 0 {
-		n -= (n % blockSize)
+	if len(A.backbuffer) > 0 {
+		if len(A.backbuffer) > len(p) {
+			//Fill p and exit
+			copy(p, A.backbuffer)
+			A.backbuffer = A.backbuffer[len(p):]
+			return len(p), nil
+		}
+
+		copy(p, A.backbuffer)
+		p = p[len(A.backbuffer):]
+		A.backbuffer = []byte{}
 	}
 	read, err := A.sourceStream.Read(p)
-	if read == 0 {
+	if read == 0 && err != nil {
 		return read, fmt.Errorf("AES CTR Decrypter: read - %w", err)
 	}
-	// One issue to handle when time permits is read != n, and its no longger block aligned
-	if read != n {
-		if read%blockSize != 0 {
-			return 0, errors.New("unhandled, read not of aes block size")
+	n := read
+	// If we read less than the block size, read out more to finish the section
+	// This is probably not normally wise, but its padded on the other side
+	blockSize := A.counter.Blocksize
+
+	if n%blockSize != 0 {
+		rounded := (n / blockSize) * blockSize
+		A.counter.XORKeyStream(p[0:rounded])
+		remainder := n % blockSize
+
+		scratch := make([]byte, blockSize)
+		copy(scratch, p[rounded:rounded+remainder])
+		read, err := A.sourceStream.Read(scratch[remainder:])
+		if read == 0 && err != nil {
+			return read, fmt.Errorf("AES CTR Decrypter: read - %w", err)
 		}
-		n = read
+		A.counter.XORKeyStream(scratch)
+		copy(p[rounded:], scratch[:remainder])
+		A.backbuffer = scratch[remainder:]
+	} else {
+
+		A.counter.XORKeyStream(p[0:n])
 	}
-	A.counter.XORKeyStream(p[0:n])
 
 	return n, err
 
