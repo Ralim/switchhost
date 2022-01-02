@@ -44,7 +44,7 @@ func (lib *Library) ScanFolder(path string) error {
 				if shouldScan {
 					//This is a file, so push it to the queue
 					log.Debug().Str("path", path).Msg("File scan requested")
-					event := fileScanningInfo{
+					event := &fileScanningInfo{
 						path: path,
 					}
 					lib.fileMetaScanRequests <- event

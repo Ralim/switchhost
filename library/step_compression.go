@@ -43,7 +43,7 @@ func (lib *Library) compressionWorker() {
 
 						if !utilities.Exists(request.path) {
 							//Source file has been deleted, notify library
-							event := fileScanningInfo{
+							event := &fileScanningInfo{
 								path:           request.path,
 								fileWasDeleted: true,
 							}
@@ -51,7 +51,7 @@ func (lib *Library) compressionWorker() {
 						}
 						if utilities.Exists(newpath) {
 							//New file exists, put it through the scanner
-							event := fileScanningInfo{
+							event := &fileScanningInfo{
 								path: newpath,
 							}
 							lib.fileMetaScanRequests <- event

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"sync"
 
 	"github.com/ralim/switchhost/formats"
@@ -42,15 +43,15 @@ type Library struct {
 	// `Scanner` -> `Metadata parser` -> `Validator` -> `Organiser` -> `Cleanup` -> `Compression`
 
 	// 1. Scan requests to figure out metadata (or unparsable)
-	fileMetaScanRequests chan fileScanningInfo
+	fileMetaScanRequests chan *fileScanningInfo
 	// 2. Once metadata is scanned, files are pushed to the validation queue, which can validate file hashes if desired (short-circuits if not)
-	fileValidationScanRequests chan fileScanningInfo
+	fileValidationScanRequests chan *fileScanningInfo
 	// 3. Organiser, once a file is valid; it is orgnisationally checked to ensure correct fs location, and placed into the library
-	fileOrganisationRequests chan fileScanningInfo
+	fileOrganisationRequests chan *fileScanningInfo
 	// 4. Now that the file has been organised; if it moved its old folder is scanned for cleanup
 	folderCleanupRequests chan string
 	// 5. Additionally, once a file is in the library, compression may be desired and thus it is passed here
-	fileCompressionRequests chan fileScanningInfo
+	fileCompressionRequests chan *fileScanningInfo
 	exit                    chan bool
 }
 
@@ -60,10 +61,10 @@ func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings) *Library
 		settings: settings,
 		keys:     nil,
 		// Channels
-		fileMetaScanRequests:       make(chan fileScanningInfo, ChannelDepth),
-		fileValidationScanRequests: make(chan fileScanningInfo, ChannelDepth),
-		fileOrganisationRequests:   make(chan fileScanningInfo, ChannelDepth),
-		fileCompressionRequests:    make(chan fileScanningInfo, ChannelDepth),
+		fileMetaScanRequests:       make(chan *fileScanningInfo, ChannelDepth),
+		fileValidationScanRequests: make(chan *fileScanningInfo, ChannelDepth),
+		fileOrganisationRequests:   make(chan *fileScanningInfo, ChannelDepth),
+		fileCompressionRequests:    make(chan *fileScanningInfo, ChannelDepth),
 		folderCleanupRequests:      make(chan string, ChannelDepth),
 		exit:                       make(chan bool, 10),
 
@@ -109,8 +110,9 @@ func (lib *Library) Start() {
 	lib.waitgroup.Add(1)
 	go lib.fileorganisationWorker()
 
-	//Internal states of the chain (except organisation) run multiple workers to utilise more cores
-	for i := 0; i < 8; i++ {
+	// Internal states of the chain (except organisation) run multiple workers to utilise more cores
+	// Process up to CPU count/2 steps at once
+	for i := 0; i < runtime.NumCPU()/2; i++ {
 		lib.waitgroup.Add(1)
 		go lib.fileMetadataWorker()
 
@@ -136,7 +138,7 @@ func (lib *Library) Stop() {
 
 func (lib *Library) NotifyIncomingFile(path string) {
 	log.Info().Str("path", path).Msg("Notified of uploaded file")
-	event := fileScanningInfo{
+	event := &fileScanningInfo{
 		path:            path,
 		mustCleanupFile: true,
 	}

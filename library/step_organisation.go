@@ -33,7 +33,7 @@ func (lib *Library) fileorganisationWorker() {
 			return
 		case event := <-lib.fileOrganisationRequests:
 			if event.fileWasDeleted {
-				lib.sortFileHandleRemoved(&event)
+				lib.sortFileHandleRemoved(event)
 			} else {
 				info := event.metadata
 
@@ -52,7 +52,7 @@ func (lib *Library) fileorganisationWorker() {
 				}
 
 				lib.AddFileRecord(record)
-				lib.postFileAddToLibraryHooks(&event)
+				lib.postFileAddToLibraryHooks(event)
 			}
 		}
 	}
@@ -66,7 +66,7 @@ func (lib *Library) postFileAddToLibraryHooks(event *fileScanningInfo) {
 			if extension[3] != 'z' {
 				//File might be compressable, send it off
 				log.Info().Str("path", event.path).Msg("Adding to compression list")
-				lib.fileCompressionRequests <- *event
+				lib.fileCompressionRequests <- event
 			}
 		}
 	}
@@ -175,7 +175,7 @@ func (lib *Library) sortFileHandleRemoved(event *fileScanningInfo) {
 				log.Info().Str("path", oldPath).Msg("Deleted path matched, rescanning")
 				delete(lib.filesKnown, key)
 				for _, item := range items {
-					event := fileScanningInfo{
+					event := &fileScanningInfo{
 						path: item.Path,
 					}
 					lib.fileMetaScanRequests <- event

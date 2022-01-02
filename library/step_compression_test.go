@@ -53,9 +53,9 @@ func TestCompressionWorker(t *testing.T) {
 	}
 	lib := Library{
 		settings:                 &sett,
-		fileCompressionRequests:  make(chan fileScanningInfo, 10),
-		fileMetaScanRequests:     make(chan fileScanningInfo, 10),
-		fileOrganisationRequests: make(chan fileScanningInfo, 10),
+		fileCompressionRequests:  make(chan *fileScanningInfo, 10),
+		fileMetaScanRequests:     make(chan *fileScanningInfo, 10),
+		fileOrganisationRequests: make(chan *fileScanningInfo, 10),
 		waitgroup:                &sync.WaitGroup{},
 	}
 	lib.waitgroup.Add(1)
@@ -66,7 +66,7 @@ func TestCompressionWorker(t *testing.T) {
 
 	go lib.compressionWorker()
 
-	lib.fileCompressionRequests <- fileScanningInfo{
+	lib.fileCompressionRequests <- &fileScanningInfo{
 		path: tempFile.Name(),
 	}
 
@@ -85,7 +85,7 @@ func TestCompressionWorker(t *testing.T) {
 	defer os.Remove(tmpfile.Name())
 	//Test the made new file path
 	lib.settings.NSZCommandLine = "touch"
-	lib.fileCompressionRequests <- fileScanningInfo{
+	lib.fileCompressionRequests <- &fileScanningInfo{
 		path: tmpfile.Name(),
 	}
 
