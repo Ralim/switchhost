@@ -22,7 +22,7 @@ func main() {
 	ui := termui.NewTermUI()
 
 	settings := settings.NewSettings(settingsPath)
-	settings.SetupLogging(ui.LogsView)
+	settings.SetupLogging(os.Stdout, ui.LogsView)
 
 	uiExit := make(chan bool, 1)
 	go func() {

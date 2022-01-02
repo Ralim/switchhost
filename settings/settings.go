@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/ralim/switchhost/termui"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -157,13 +158,23 @@ func (s *Settings) GetAllScanFolders() []string {
 	return res
 }
 
-func (s *Settings) SetupLogging(output io.Writer) {
+func (s *Settings) SetupLogging(output io.Writer, termElement io.Writer) {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.SetGlobalLevel(zerolog.Level(s.LogLevel))
-	consoleWriter := zerolog.ConsoleWriter{
-		Out:        output,
-		TimeFormat: zerolog.TimeFormatUnix,
+	var consoleWriter io.Writer
+	if termElement != nil {
+		consoleWriter = termui.TermUIWriter{
+			Out:        termElement,
+			TimeFormat: zerolog.TimeFormatUnix,
+		}
+	} else {
+
+		consoleWriter = zerolog.ConsoleWriter{
+			Out:        output,
+			TimeFormat: zerolog.TimeFormatUnix,
+		}
 	}
+
 	stdlog.SetOutput(consoleWriter)
 	log.Logger = log.Output(consoleWriter)
 
