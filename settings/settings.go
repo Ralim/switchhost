@@ -2,6 +2,7 @@ package settings
 
 import (
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	stdlog "log"
 	"os"
@@ -120,8 +121,6 @@ func NewSettings(path string) *Settings {
 	settings.cleanpaths()
 	// Save to preserve if we have added anything to the file, and drop no-longer used settings for clarity
 	settings.Save()
-	// Setup the logging
-	settings.setupLogging()
 	log.Info().Msg("Settings loaded, merged and saved")
 	return settings
 }
@@ -158,11 +157,11 @@ func (s *Settings) GetAllScanFolders() []string {
 	return res
 }
 
-func (s *Settings) setupLogging() {
+func (s *Settings) SetupLogging(output io.Writer) {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.SetGlobalLevel(zerolog.Level(s.LogLevel))
 	consoleWriter := zerolog.ConsoleWriter{
-		Out:        os.Stdout,
+		Out:        output,
 		TimeFormat: zerolog.TimeFormatUnix,
 	}
 	stdlog.SetOutput(consoleWriter)

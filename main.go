@@ -2,12 +2,12 @@ package main
 
 import (
 	"os"
-	"os/signal"
 	"path"
 
 	"github.com/ralim/switchhost/library"
 	"github.com/ralim/switchhost/server"
 	"github.com/ralim/switchhost/settings"
+	"github.com/ralim/switchhost/termui"
 	"github.com/ralim/switchhost/titledb"
 	"github.com/rs/zerolog/log"
 )
@@ -17,7 +17,11 @@ func main() {
 	if len(os.Args) > 1 {
 		settingsPath = os.Args[1]
 	}
+
+	ui := termui.NewTermUI()
+
 	settings := settings.NewSettings(settingsPath)
+	settings.SetupLogging(ui.LogsView)
 	Titles := titledb.CreateTitlesDB(settings)
 	Titles.UpdateTitlesDB()
 	lib := library.NewLibrary(Titles, settings)
@@ -27,15 +31,12 @@ func main() {
 	server := server.NewServer(lib, Titles, settings)
 
 	server.Run()
-	SignalChannel := make(chan os.Signal, 1)
 
-	signal.Notify(SignalChannel, os.Interrupt)
-
-	<-SignalChannel
+	ui.Run()
 	log.Warn().Msg("Ctrl-c pressed, closing up")
 	server.Stop() // stop the servers
 	lib.Stop()    // wait for library to close down
-
+	ui.Stop()
 }
 
 func tryAndLoadKeys(lib *library.Library) {
