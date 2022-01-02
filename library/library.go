@@ -116,8 +116,9 @@ func (lib *Library) Start() {
 	go lib.fileorganisationWorker()
 
 	// Internal states of the chain (except organisation) run multiple workers to utilise more cores
-	// Process up to CPU count/2 steps at once
-	for i := 0; i < runtime.NumCPU()/2; i++ {
+	// Process up to CPU count steps at once for each type
+	// This will overschedule the tasks to run usually, but we are _super_ IO blocked so its usually OK
+	for i := 0; i < runtime.NumCPU(); i++ {
 		lib.waitgroup.Add(1)
 		go lib.fileMetadataWorker()
 
