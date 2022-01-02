@@ -21,7 +21,7 @@ func TestStopStart(t *testing.T) {
 	lib := NewLibrary(nil, &sett)
 
 	//Inject some pending requests
-	lib.fileCompressionRequests <- fileScanningInfo{
+	lib.fileCompressionRequests <- &fileScanningInfo{
 		path: "0.02",
 	}
 	startime := time.Now()

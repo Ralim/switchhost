@@ -65,10 +65,10 @@ func TestCompressionWorker(t *testing.T) {
 	defer close(lib.fileOrganisationRequests)
 
 	go lib.compressionWorker()
-
-	lib.fileCompressionRequests <- &fileScanningInfo{
+	msg := &fileScanningInfo{
 		path: tempFile.Name(),
 	}
+	lib.fileCompressionRequests <- msg
 
 	result := <-lib.fileOrganisationRequests
 

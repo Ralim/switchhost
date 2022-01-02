@@ -155,13 +155,13 @@ func (lib *Library) handleFileCollision(existing, proposed *FileOnDiskRecord) *F
 				selectNew := (strings.HasSuffix(extNew, "z") && lib.settings.PreferCompressed) || strings.HasSuffix(extOld, "z") && !lib.settings.PreferCompressed
 
 				if selectNew {
-					log.Info().Str("path", old.Path).Msg("Cleaning up file as newer is compressed")
+					log.Info().Str("path", old.Path).Msg("Cleaning up file based on compression rules")
 					if err := os.Remove(old.Path); err != nil {
 						log.Warn().Str("path", old.Path).Msg("Failed to delete older file on collision")
 					}
 					return new
 				} else {
-					log.Info().Str("path", new.Path).Msg("Cleaning up file as older is compressed")
+					log.Info().Str("path", new.Path).Msg("Cleaning up file based on compression rules")
 					if err := os.Remove(new.Path); err != nil {
 						log.Warn().Str("path", new.Path).Msg("Failed to delete new file on collision")
 					}

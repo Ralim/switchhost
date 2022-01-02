@@ -23,7 +23,7 @@ func (lib *Library) compressionWorker() {
 			return
 		case request := <-lib.fileCompressionRequests:
 			//For each requested file, run it through NSZ and check output
-			if utilities.Exists(request.path) {
+			if request != nil && utilities.Exists(request.path) {
 				if len(request.path) > 3 {
 					newpath := request.path[0:len(request.path)-1] + "z"
 					log.Info().Str("path", request.path).Msg("Starting compression")
