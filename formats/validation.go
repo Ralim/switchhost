@@ -13,6 +13,7 @@ import (
 	aesctr "github.com/ralim/switchhost/formats/AESCTR"
 	cnmt "github.com/ralim/switchhost/formats/CNMT"
 	nca "github.com/ralim/switchhost/formats/NCA"
+	nsz "github.com/ralim/switchhost/formats/NSZ"
 	partitionfs "github.com/ralim/switchhost/formats/partitionFS"
 	"github.com/ralim/switchhost/keystore"
 	"github.com/ralim/switchhost/settings"
@@ -171,16 +172,23 @@ func ValidateNSPHash(keystore *keystore.Keystore, settings *settings.Settings, r
 				if bytes.Equal(magic, []byte("NCZBLOCK")) {
 					useBlockDecompressor = true
 				}
+				var decompressingReader io.Reader
 				if useBlockDecompressor {
-					return errors.New("block decompression not yet implemented")
-				}
+					blockDecompressor, err := nsz.NewBlockDecompressor(reader)
 
-				zstdReader, err := zstd.NewReader(reader)
-				if err != nil {
-					return err
-				}
-				defer zstdReader.Close()
+					if err != nil {
+						return err
+					}
+					decompressingReader = blockDecompressor
+				} else {
 
+					zstdReader, err := zstd.NewReader(reader)
+					if err != nil {
+						return err
+					}
+
+					decompressingReader = zstdReader
+				}
 				for sectNum, section := range sections {
 					// Chain varies by crypto type
 					// If crypto type is 3 or 4, then we want to do: file -> zstandard -> crypto -> hash
@@ -189,7 +197,7 @@ func ValidateNSPHash(keystore *keystore.Keystore, settings *settings.Settings, r
 					var prehashReader io.Reader
 					// Now we either chain this into crypto or the hash directly
 					if section.cryptoType == 3 || section.cryptoType == 4 {
-						cipherStream, err := aesctr.NewAESCTREncrypter(zstdReader, section.cryptoKey, section.cryptoCounter, []byte{})
+						cipherStream, err := aesctr.NewAESCTREncrypter(decompressingReader, section.cryptoKey, section.cryptoCounter, []byte{})
 						if err != nil {
 							return err
 						}
@@ -204,7 +212,7 @@ func ValidateNSPHash(keystore *keystore.Keystore, settings *settings.Settings, r
 						prehashReader = cipherStream
 
 					} else {
-						prehashReader = zstdReader
+						prehashReader = decompressingReader
 					}
 					//Now we can copy all the bytes into the hasher
 
