@@ -1,7 +1,6 @@
 package library
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -39,7 +38,7 @@ func (lib *Library) cleanupFolderWorker() {
 						}
 					}
 					if ok {
-						status.UpdateStatus(fmt.Sprintf("Scanning %s", parent))
+						status.UpdateStatus(parent)
 						recursivelyCheckForEmptyFolders(parent)
 						status.UpdateStatus("Idle")
 					}

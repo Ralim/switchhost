@@ -1,7 +1,6 @@
 package library
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +16,7 @@ func (lib *Library) RunScan() {
 	statusElement := lib.ui.RegisterTask("File Scanner")
 	defer statusElement.UpdateStatus("Done")
 	for _, folder := range lib.settings.GetAllScanFolders() {
-		statusElement.UpdateStatus(fmt.Sprintf("Scanning %s", folder))
+		statusElement.UpdateStatus(folder)
 		if err := lib.ScanFolder(folder); err == nil {
 			lib.folderCleanupRequests <- folder
 		}

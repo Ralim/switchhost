@@ -39,7 +39,7 @@ func (lib *Library) fileMetadataWorker() {
 		case event := <-lib.fileMetaScanRequests:
 			// If the file can be parsed, update metadata and push along
 			// Otherwise handle cleanup
-			status.UpdateStatus(fmt.Sprintf("Scanning %s", path.Base(event.path)))
+			status.UpdateStatus(path.Base(event.path))
 			err := lib.setFileMeta(event)
 			if err == nil {
 				// File parsed well; so sent it to the next stage

@@ -1,7 +1,6 @@
 package library
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"strings"
@@ -29,7 +28,7 @@ func (lib *Library) fileValidationWorker() {
 			return
 		case event := <-lib.fileValidationScanRequests:
 			requestedPath := event.path
-			status.UpdateStatus(fmt.Sprintf("Validating %s", path.Base(event.path)))
+			status.UpdateStatus(path.Base(event.path))
 
 			// This file has had its metadata parsed, so we want to validate integrity if desired
 			// If it parses validation send it on, if not.. handle it
