@@ -64,7 +64,7 @@ func NewTermUI() *TermUI {
 
 	grid := tview.NewGrid()
 	grid.SetRows(-1)
-	grid.SetColumns(-1, -3)
+	grid.SetColumns(-1, -1)
 	grid.SetBorders(true)
 
 	// Grid contents
