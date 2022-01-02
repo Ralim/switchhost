@@ -57,8 +57,6 @@ func NewTermUI() *TermUI {
 	t.statusTable.SetFixed(1, 1)
 	t.statusTable.SetCellSimple(0, 0, "Task")
 	t.statusTable.SetCellSimple(0, 1, "Status")
-	t.statusTable.SetCellSimple(0, 2, "Task")
-	t.statusTable.SetCellSimple(0, 3, "Status")
 
 	// Grid
 
