@@ -15,7 +15,7 @@ func (t *TermUI) RegisterTask(taskName string) *TaskState {
 	state := &TaskState{
 		name:        taskName,
 		statusTable: t.statusTable,
-		app:         t.app,
+		parent:      t,
 		row:         row,
 		col:         colindex + 1,
 	}

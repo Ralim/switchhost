@@ -11,7 +11,8 @@ import (
 
 type TermUI struct {
 	sync.Mutex
-	app *tview.Application
+	running bool
+	app     *tview.Application
 
 	//Logger points to this
 	LogsView   *tview.TextView
@@ -24,8 +25,9 @@ type TermUI struct {
 func NewTermUI() *TermUI {
 
 	t := &TermUI{
-		tasks: []*TaskState{},
-		app:   tview.NewApplication(),
+		tasks:   []*TaskState{},
+		app:     tview.NewApplication(),
+		running: false,
 	}
 	t.Statistics = newStatistics(t.app)
 
@@ -71,10 +73,12 @@ func NewTermUI() *TermUI {
 }
 
 func (t *TermUI) Run() {
+	t.running = true
 	_ = t.app.Run()
 
 }
 func (t *TermUI) Stop() {
+	t.running = false
 	t.app.Stop()
 
 }
