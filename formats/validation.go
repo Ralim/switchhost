@@ -11,11 +11,8 @@ import (
 	"github.com/klauspost/compress/zstd"
 	aesctr "github.com/ralim/switchhost/formats/AESCTR"
 	cnmt "github.com/ralim/switchhost/formats/CNMT"
-	nca "github.com/ralim/switchhost/formats/NCA"
 	nsz "github.com/ralim/switchhost/formats/NSZ"
 	partitionfs "github.com/ralim/switchhost/formats/partitionFS"
-	"github.com/ralim/switchhost/keystore"
-	"github.com/ralim/switchhost/settings"
 	"github.com/rs/zerolog/log"
 )
 
@@ -25,98 +22,6 @@ const UNCOMPRESSABLE_HEADER_SIZE int64 = 0x4000
 
 // Find the CNMT section in the file, as this holds the content metadaata, then inside this, has hashes
 // Once these are found validate these against the file
-
-func ValidateNSPHash(keystore *keystore.Keystore, settings *settings.Settings, reader ReaderRequired) error {
-	pfs0Header, err := partitionfs.ReadSection(reader, 0)
-	if err != nil {
-		return fmt.Errorf("reading NSP PartionFS failed with - %w", err)
-	}
-	var fileCNMT *cnmt.ContentMetaAttributes
-	fileCNMT = nil
-	for _, pfs0File := range pfs0Header.FileEntryTable {
-
-		if strings.HasSuffix(pfs0File.Name, "cnmt.nca") {
-			NCAMetaHeader, err := nca.ParseNCAEncryptedHeader(keystore, reader, pfs0File.StartOffset)
-			if err != nil {
-				return fmt.Errorf("ParseNCAEncryptedHeader failed with - %w", err)
-			}
-			section, err := nca.DecryptMetaNCADataSection(keystore, reader, NCAMetaHeader, pfs0File.StartOffset)
-			if err != nil {
-				return fmt.Errorf("DecryptMetaNCADataSection failed with - %w", err)
-			}
-			currpfs0, err := partitionfs.ReadSection(bytes.NewReader(section), 0x0)
-			if err != nil {
-				return fmt.Errorf("ReadSection failed with - %w", err)
-			}
-			currCnmt, err := cnmt.ParseBinary(currpfs0, section)
-			if err != nil {
-				return fmt.Errorf("ParseBinary failed with - %w", err)
-			}
-			fileCNMT = currCnmt
-		}
-	}
-	for _, pfs0File := range pfs0Header.FileEntryTable {
-		if err := validatePFS0File(pfs0File, reader, fileCNMT, 0); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func ValidateXCIHash(keystore *keystore.Keystore, settings *settings.Settings, reader ReaderRequired) error {
-	header := make([]byte, XCIHeaderSize)
-	if _, err := reader.ReadAt(header, 0); err != nil {
-		return fmt.Errorf("reading XCI header failed %w", err)
-	}
-	XCIHeaderString := string(header[XCIHeaderMagicStringOffset : XCIHeaderMagicStringOffset+4])
-	if XCIHeaderString != "HEAD" {
-		return fmt.Errorf("invalid XCI headerBytes. Expected 'HEAD', got >%s<", XCIHeaderString)
-	}
-
-	rootPartitionOffset := binary.LittleEndian.Uint64(header[XCIRootPartionHeaderOffset : XCIRootPartionHeaderOffset+8])
-	rootHfs0, err := partitionfs.ReadSection(reader, int64(rootPartitionOffset))
-	if err != nil {
-		return fmt.Errorf("reading XCI PartionFS failed with - %w", err)
-	}
-
-	secureHfs0, secureOffset, err := readSecurePartition(reader, rootHfs0, rootPartitionOffset)
-	if err != nil {
-		return err
-	}
-	var fileCNMT *cnmt.ContentMetaAttributes
-	for _, pfs0File := range secureHfs0.FileEntryTable {
-		if strings.Contains(pfs0File.Name, "cnmt.nca") {
-
-			fileOffset := secureOffset + int64(pfs0File.StartOffset)
-			NCAMetaHeader, err := nca.ParseNCAEncryptedHeader(keystore, reader, uint64(fileOffset))
-			if err != nil {
-				return fmt.Errorf("ParseNCAEncryptedHeader failed with - %w", err)
-			}
-			section, err := nca.DecryptMetaNCADataSection(keystore, reader, NCAMetaHeader, uint64(fileOffset))
-			if err != nil {
-				return fmt.Errorf("DecryptMetaNCADataSection failed with - %w", err)
-			}
-			currpfs0, err := partitionfs.ReadSection(bytes.NewReader(section), 0x0)
-			if err != nil {
-				return fmt.Errorf("ReadSection failed with - %w", err)
-			}
-
-			currCnmt, err := cnmt.ParseBinary(currpfs0, section)
-			if err != nil {
-				return fmt.Errorf("ParseBinary failed with - %w", err)
-			}
-			fileCNMT = currCnmt
-		}
-	}
-
-	for _, pfs0File := range secureHfs0.FileEntryTable {
-		if err := validatePFS0File(pfs0File, reader, fileCNMT, secureOffset); err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
 func validatePFS0File(pfs0File partitionfs.FileEntryTableItem, reader ReaderRequired, fileCNMT *cnmt.ContentMetaAttributes, offset int64) error {
 
