@@ -50,7 +50,7 @@ func (lib *Library) fileValidationWorker() {
 						log.Error().Str("path", requestedPath).Msg("File failed valiation, tried deleting file, but it failed")
 					}
 				} else {
-					log.Warn().Str("path", requestedPath).Str("name":event.metadata.Name).Str("title":event.metadata.EmbeddedTitle).Msg("File failed valiation, not putting in library")
+					log.Warn().Str("path", requestedPath).Str("name", event.metadata.Name).Str("title", event.metadata.EmbeddedTitle).Msg("File failed valiation, not putting in library")
 				}
 			}
 			if status != nil {
