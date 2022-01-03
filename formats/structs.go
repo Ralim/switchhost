@@ -21,7 +21,6 @@ type FileInfo struct {
 }
 
 type ReaderRequired interface {
-	io.Reader
+	io.ReadSeeker
 	io.ReaderAt
-	io.Seeker
 }
