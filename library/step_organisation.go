@@ -67,6 +67,7 @@ func (lib *Library) fileorganisationWorker() {
 				}
 
 				lib.AddFileRecord(record)
+				event.path = fileResultingPath
 				lib.postFileAddToLibraryHooks(event)
 				if status != nil {
 					status.UpdateStatus("Idle")
