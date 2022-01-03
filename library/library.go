@@ -139,6 +139,8 @@ func (lib *Library) Start() {
 func (lib *Library) Stop() {
 	log.Info().Msg("Library closing")
 	lib.exit <- true
+	log.Info().Msg("Waiting")
+
 	lib.waitgroup.Wait()
 }
 

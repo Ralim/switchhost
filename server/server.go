@@ -44,7 +44,7 @@ func (server *Server) Run() {
 
 func (server *Server) Stop() {
 	if server.httpServer != nil {
-		server.httpServer.Shutdown(context.Background())
+		_ = server.httpServer.Shutdown(context.Background())
 		log.Info().Msg("HTTP task exiting")
 	}
 	if server.ftpServer != nil {

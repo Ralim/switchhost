@@ -14,7 +14,10 @@ func TestNSZCompressFile(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	tempFile.WriteString("Test")
+	_, err = tempFile.WriteString("Test")
+	if err != nil {
+		t.Error(err)
+	}
 	tempFile.Close()
 	defer os.Remove(tempFile.Name())
 	sett := settings.Settings{
@@ -45,7 +48,10 @@ func TestCompressionWorker(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	tempFile.WriteString("Test")
+	_, err = tempFile.WriteString("Test")
+	if err != nil {
+		t.Error(err)
+	}
 	tempFile.Close()
 	defer os.Remove(tempFile.Name())
 	sett := settings.Settings{

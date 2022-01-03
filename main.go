@@ -10,6 +10,7 @@ import (
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/termui"
 	"github.com/ralim/switchhost/titledb"
+	"github.com/rivo/tview"
 	"github.com/rs/zerolog/log"
 )
 
@@ -22,7 +23,7 @@ func main() {
 	ui := termui.NewTermUI()
 
 	settings := settings.NewSettings(settingsPath)
-	settings.SetupLogging(ui.LogsView)
+	settings.SetupLogging(tview.ANSIWriter(ui.LogsView))
 
 	uiExit := make(chan bool, 1)
 	go func() {
@@ -48,6 +49,8 @@ func main() {
 
 	server.Run()
 	<-uiExit
+	//Rediect logs back to terminal
+	settings.SetupLogging(os.Stdout)
 	log.Warn().Msg("Ctrl-c pressed, closing up")
 	fmt.Println("Waiting for tasks to stop")
 	server.Stop() // stop the servers

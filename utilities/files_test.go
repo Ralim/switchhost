@@ -13,7 +13,10 @@ func TestExists(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	tempFile.WriteString("Test")
+	_, err = tempFile.WriteString("Test")
+	if err != nil {
+		t.Error(err)
+	}
 	tempFile.Close()
 
 	exists := utilities.Exists(tempFile.Name())

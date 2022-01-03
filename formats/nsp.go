@@ -62,3 +62,41 @@ func ParseNSPToMetaData(keystore *keystore.Keystore, settings *settings.Settings
 	}
 	return info, nil
 }
+
+func ValidateNSPHash(keystore *keystore.Keystore, settings *settings.Settings, reader ReaderRequired) error {
+	pfs0Header, err := partitionfs.ReadSection(reader, 0)
+	if err != nil {
+		return fmt.Errorf("reading NSP PartionFS failed with - %w", err)
+	}
+	var fileCNMT *cnmt.ContentMetaAttributes
+	fileCNMT = nil
+	for _, pfs0File := range pfs0Header.FileEntryTable {
+
+		if strings.HasSuffix(pfs0File.Name, "cnmt.nca") {
+			NCAMetaHeader, err := nca.ParseNCAEncryptedHeader(keystore, reader, pfs0File.StartOffset)
+			if err != nil {
+				return fmt.Errorf("ParseNCAEncryptedHeader failed with - %w", err)
+			}
+			section, err := nca.DecryptMetaNCADataSection(keystore, reader, NCAMetaHeader, pfs0File.StartOffset)
+			if err != nil {
+				return fmt.Errorf("DecryptMetaNCADataSection failed with - %w", err)
+			}
+			currpfs0, err := partitionfs.ReadSection(bytes.NewReader(section), 0x0)
+			if err != nil {
+				return fmt.Errorf("ReadSection failed with - %w", err)
+			}
+			currCnmt, err := cnmt.ParseBinary(currpfs0, section)
+			if err != nil {
+				return fmt.Errorf("ParseBinary failed with - %w", err)
+			}
+			fileCNMT = currCnmt
+		}
+	}
+	for _, pfs0File := range pfs0Header.FileEntryTable {
+		if err := validatePFS0File(pfs0File, reader, fileCNMT, 0); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
