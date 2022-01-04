@@ -18,7 +18,7 @@ type fileEntry struct {
 type jsonIndex struct {
 	Files           []fileEntry                     `json:"files"`
 	Folders         []string                        `json:"directories"`
-	MOTD            string                          `json:"success"`
+	MOTD            *string                         `json:"success"`
 	TitleDB         map[string]titledb.TitleDBEntry `json:"titledb"`
 	BackupLocations []string                        `json:"locations"`
 }
@@ -26,9 +26,11 @@ type jsonIndex struct {
 func (server *Server) generateFileJSONPayload(writer io.Writer, hostNameToUse string, useHTTPS bool) error {
 	response := jsonIndex{
 		Files:           []fileEntry{},
-		MOTD:            server.settings.ServerMOTD,
 		TitleDB:         make(map[string]titledb.TitleDBEntry),
 		BackupLocations: server.settings.JSONLocations,
+	}
+	if len(server.settings.ServerMOTD) > 0 {
+		response.MOTD = &server.settings.ServerMOTD
 	}
 
 	for _, file := range server.library.ListFiles() {
