@@ -28,6 +28,7 @@ func main() {
 	uiExit := make(chan bool, 1)
 	go func() {
 		ui.Run()
+		ui.Stop()
 		uiExit <- true
 	}()
 
@@ -55,7 +56,7 @@ func main() {
 	fmt.Println("Waiting for tasks to stop")
 	server.Stop() // stop the servers
 	lib.Stop()    // wait for library to close down
-	ui.Stop()
+
 }
 
 func tryAndLoadKeys(lib *library.Library) {
