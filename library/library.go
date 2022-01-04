@@ -15,6 +15,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// Channel depth is a tradeoff between RAM utiisation and ability to tolerate bursts of uploads
 const ChannelDepth int = 64
 
 // This struct is used for all of the file ingest scanning path.

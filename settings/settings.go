@@ -49,14 +49,17 @@ type Settings struct {
 	// Incoming
 	UploadingAllowed bool   `json:"uploadingAllowed"` // Can FTP be used to push new files
 	TempFilesFolder  string `json:"tempFilesFolder"`  // Temporary file storage location for FTP uploads
-	// File validation on incoming
 
-	ValidateLibrary       bool `json:"validateLibrary"`
-	ValidateNewFiles      bool `json:"validateUploads"`       // If uploads must validate before being added, even if above toggles are off
-	DeleteValidationFails bool `json:"deleteValidationFails"` // If a file fails validation, should it be deleted
+	// File validation
+	ValidateLibrary         bool `json:"validateLibrary"`       // If all files found in the main library location are validated for checksums
+	ValidateNewFiles        bool `json:"validateUploads"`       // If uploads must validate before being added, even if above toggles are off
+	ValidateCompressedFiles bool `json:"validateCompressed"`    // If files are re-validated after compression
+	DeleteValidationFails   bool `json:"deleteValidationFails"` // If a file fails validation, should it be deleted
+
 	// Compression
 	NSZCommandLine     string `json:"NSZCommandLine"`     // Base command line used to run NSZ
 	CompressionEnabled bool   `json:"compressionEnabled"` // Should files be converted to their compressed verions
+
 	// Misc
 	LogLevel    int    `json:"logLevel"` // Log level, higher numbers reduce log output
 	LogFilePath string `json:"logPath"`  // Path to persist logs to, if empty none are persisted
@@ -71,33 +74,34 @@ type Settings struct {
 func NewSettings(path string) *Settings {
 
 	settings := &Settings{
-		filePath:              path,
-		PreferredLangOrder:    []int{1, 0},
-		FoldersToScan:         []string{"./incoming_files"},                                         // Search locations
-		JSONLocations:         []string{},                                                           // Locations in the json to point to backup instances
-		StorageFolder:         "./game_library",                                                     // Storage location
-		CacheFolder:           "/tmp/",                                                              // Where to cache downloaded files to (titledb)
-		EnableSorting:         false,                                                                // default "safe"
-		CleanupEmptyFolders:   true,                                                                 // Relatively safe
-		HTTPPort:              8080,                                                                 // Ports
-		FTPPort:               2121,                                                                 // Ports
-		ServerMOTD:            "Switchroot",                                                         // MOTD to include in the json file
-		LogLevel:              1,                                                                    // Info
-		LogFilePath:           "",                                                                   // No log file
-		OrganisationFormat:    "{TitleName}/{TitleName} {Type} {VersionDec} [{TitleID}][{Version}]", // Path used for organising files
-		NSZCommandLine:        "nsz --verify -w -C -p -t 4 --rm-source ",                            // NSZ command used for file compression
-		CompressionEnabled:    false,                                                                // Should files be compressed using NSZ
-		PreferCompressed:      true,                                                                 // Should compressed files be preferred over non-compressed on duplicate
-		PreferXCI:             false,                                                                // Should XCI files be preferred over nsp on duplicate
-		UploadingAllowed:      false,                                                                // Should FTP allow file uploads
-		Deduplicate:           false,                                                                // Should the software delete duplicate files
-		AllowAnonFTP:          false,                                                                // Should anon users be allowed FTP access
-		AllowAnonHTTP:         false,                                                                // Should anon users be allowed HTTP access
-		DeleteValidationFails: false,                                                                //
-		logFile:               nil,                                                                  // Optional path to a file to log to
-		TempFilesFolder:       "/tmp",                                                               // Temp files location used for staging FTP uploads
-		ValidateLibrary:       false,                                                                // Should all existing library files be validated
-		ValidateNewFiles:      true,                                                                 // Should "new" files be validated (upload + not library)
+		filePath:                path,
+		PreferredLangOrder:      []int{1, 0},
+		FoldersToScan:           []string{"./incoming_files"},                                         // Search locations
+		JSONLocations:           []string{},                                                           // Locations in the json to point to backup instances
+		StorageFolder:           "./game_library",                                                     // Storage location
+		CacheFolder:             "/tmp/",                                                              // Where to cache downloaded files to (titledb)
+		EnableSorting:           false,                                                                // default "safe"
+		CleanupEmptyFolders:     true,                                                                 // Relatively safe
+		HTTPPort:                8080,                                                                 // Ports
+		FTPPort:                 2121,                                                                 // Ports
+		ServerMOTD:              "Switchroot",                                                         // MOTD to include in the json file
+		LogLevel:                1,                                                                    // Info
+		LogFilePath:             "",                                                                   // No log file
+		OrganisationFormat:      "{TitleName}/{TitleName} {Type} {VersionDec} [{TitleID}][{Version}]", // Path used for organising files
+		NSZCommandLine:          "nsz --verify -w -C -p -t 4 --rm-source ",                            // NSZ command used for file compression
+		CompressionEnabled:      false,                                                                // Should files be compressed using NSZ
+		PreferCompressed:        true,                                                                 // Should compressed files be preferred over non-compressed on duplicate
+		PreferXCI:               false,                                                                // Should XCI files be preferred over nsp on duplicate
+		UploadingAllowed:        false,                                                                // Should FTP allow file uploads
+		Deduplicate:             false,                                                                // Should the software delete duplicate files
+		AllowAnonFTP:            false,                                                                // Should anon users be allowed FTP access
+		AllowAnonHTTP:           false,                                                                // Should anon users be allowed HTTP access
+		DeleteValidationFails:   false,                                                                //
+		logFile:                 nil,                                                                  // Optional path to a file to log to
+		TempFilesFolder:         "/tmp",                                                               // Temp files location used for staging FTP uploads
+		ValidateLibrary:         false,                                                                // Should all existing library files be validated
+		ValidateNewFiles:        true,                                                                 // Should "new" files be validated (upload + not library)
+		ValidateCompressedFiles: true,                                                                 // Should files be validated after they have been through the compressor
 
 		//Add a demo account
 		Users: []AuthUser{

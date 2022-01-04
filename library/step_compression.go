@@ -63,7 +63,8 @@ func (lib *Library) compressionWorker() {
 						if utilities.Exists(newpath) {
 							//New file exists, put it through the scanner
 							event := &fileScanningInfo{
-								path: newpath,
+								path:        newpath,
+								isInLibrary: !lib.settings.ValidateCompressedFiles,
 							}
 							lib.fileMetaScanRequests <- event
 						}
