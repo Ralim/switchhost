@@ -53,7 +53,14 @@ func (server *Server) StartHTTP() {
 
 func (server *Server) httpHandleJSON(respWriter http.ResponseWriter, r *http.Request) {
 	respWriter.Header().Set("Content-Type", "application/json")
-	err := server.generateFileJSONPayload(respWriter, r.Host, false)
+	//Extract auth header and request it to be sent with all following requests
+	var headers *[]string
+	if v, ok := r.Header["Authorization"]; ok {
+		if len(v) > 0 {
+			headers = &[]string{"Authorization: " + v[0]}
+		}
+	}
+	err := server.generateFileJSONPayload(respWriter, r.Host, false, headers)
 	if err != nil {
 		http.Error(respWriter, "Generating index failed", http.StatusInternalServerError)
 		return

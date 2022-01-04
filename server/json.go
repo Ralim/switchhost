@@ -21,13 +21,15 @@ type jsonIndex struct {
 	MOTD            *string                         `json:"success"`
 	TitleDB         map[string]titledb.TitleDBEntry `json:"titledb"`
 	BackupLocations []string                        `json:"locations"`
+	Headers         *[]string                       `json:"headers,omitempty"`
 }
 
-func (server *Server) generateFileJSONPayload(writer io.Writer, hostNameToUse string, useHTTPS bool) error {
+func (server *Server) generateFileJSONPayload(writer io.Writer, hostNameToUse string, useHTTPS bool, customHeaders *[]string) error {
 	response := jsonIndex{
 		Files:           []fileEntry{},
 		TitleDB:         make(map[string]titledb.TitleDBEntry),
 		BackupLocations: server.settings.JSONLocations,
+		Headers:         customHeaders,
 	}
 	if len(server.settings.ServerMOTD) > 0 {
 		response.MOTD = &server.settings.ServerMOTD
