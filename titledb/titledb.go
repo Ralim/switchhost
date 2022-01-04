@@ -60,18 +60,25 @@ func CreateTitlesDB(settings *settings.Settings) *TitlesDB {
 // UpdateTitlesDB will sync latest titlesdb, then update the internal memory state
 func (db *TitlesDB) UpdateTitlesDB() {
 	_ = os.MkdirAll(db.settings.CacheFolder, 0755)
-
+	wg := &sync.WaitGroup{}
 	// Download the latest titlesdb to the current folder
 	for _, fileURL := range db.settings.TitlesDBURLs {
-		path, err := utilities.DownloadFileWithVersioning(fileURL, db.settings.CacheFolder)
-		if err != nil {
-			log.Warn().Err(err).Msg("Downloading latest TitlesDB failed, will continue using cached")
-		}
-		if err := db.injestTitleDBFile(path); err != nil {
-			log.Error().Err(err).Str("url", fileURL).Msg("TitleDB couldn't parse downloaded data")
-		} else {
-			log.Info().Str("url", fileURL).Msg("Loaded TitleDB")
-		}
+		wg.Add(1)
+		go db.downloadFileAndInjest(fileURL, wg)
+	}
+	wg.Wait()
+}
+
+func (db *TitlesDB) downloadFileAndInjest(fileURL string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	path, err := utilities.DownloadFileWithVersioning(fileURL, db.settings.CacheFolder)
+	if err != nil {
+		log.Warn().Err(err).Msg("Downloading latest TitlesDB failed, will continue using cached")
+	}
+	if err := db.injestTitleDBFile(path); err != nil {
+		log.Error().Err(err).Str("url", fileURL).Msg("TitleDB couldn't parse downloaded data")
+	} else {
+		log.Info().Str("url", fileURL).Msg("Loaded TitleDB")
 	}
 }
 
