@@ -68,6 +68,7 @@ func NewTermUI() *TermUI {
 
 	t.app.SetRoot(grid, true)
 	t.app.SetFocus(grid)
+	t.app.EnableMouse(true)
 	return t
 }
 
