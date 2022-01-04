@@ -18,7 +18,7 @@ type fileEntry struct {
 type jsonIndex struct {
 	Files           []fileEntry                     `json:"files"`
 	Folders         []string                        `json:"directories"`
-	MOTD            *string                         `json:"success"`
+	MOTD            *string                         `json:"success,omitempty"`
 	TitleDB         map[string]titledb.TitleDBEntry `json:"titledb"`
 	BackupLocations []string                        `json:"locations"`
 	Headers         *[]string                       `json:"headers,omitempty"`
