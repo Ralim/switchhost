@@ -15,7 +15,7 @@ type TaskState struct {
 func (t *TaskState) UpdateStatus(state string) {
 	t.lastStatus = state
 	if t.parent.running {
-		go t.parent.app.QueueUpdateDraw(func() {
+		t.parent.app.QueueUpdateDraw(func() {
 			t.statusTable.SetCellSimple(t.row, t.col, state)
 		})
 	}
@@ -24,7 +24,7 @@ func (t *TaskState) UpdateStatus(state string) {
 //redraw draws title and contents again
 func (t *TaskState) redraw() {
 	if t.parent.running {
-		go t.parent.app.QueueUpdateDraw(func() {
+		t.parent.app.QueueUpdateDraw(func() {
 			t.statusTable.SetCellSimple(t.row, t.col, t.lastStatus)
 			t.statusTable.SetCellSimple(t.row, t.col-1, t.name)
 		})
