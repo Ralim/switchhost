@@ -47,7 +47,7 @@ func CreateVirtualFTP(lib *library.Library, settings *settings.Settings) *FTPSer
 func (ftp *FTPServer) Start() {
 	err := ftp.server.ListenAndServe()
 	if err != nil {
-		log.Error().Err(err).Msg("FTP server exited")
+		log.Warn().Err(err).Msg("FTP server exited")
 	}
 }
 func (ftp *FTPServer) Stop() {
