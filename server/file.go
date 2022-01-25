@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ralim/switchhost/library"
+	"github.com/ralim/switchhost/library/index"
 	"github.com/ralim/switchhost/utilities"
 )
 
@@ -23,7 +23,7 @@ var ErrInvalidPath error = errors.New("invalid path")
 
 // Given valid input, these two functions are each others inverse
 
-func (server *Server) GenerateVirtualFilePath(file library.FileOnDiskRecord, hostNameToUse string, useHTTPS bool) string {
+func (server *Server) GenerateVirtualFilePath(file index.FileOnDiskRecord, hostNameToUse string, useHTTPS bool) string {
 	ext := path.Ext(file.Path)
 	ext = strings.ToLower(ext)
 	fileFinalName := fmt.Sprintf("%s [%016X][v%d]%s", utilities.CleanName(file.Name), file.TitleID, file.Version, ext)
@@ -58,7 +58,7 @@ func (server *Server) getFileFromVirtualPath(path string) (io.ReadSeekCloser, st
 		return nil, "", 0, fmt.Errorf("couldn't interpret path %s - %w", path, err)
 	}
 	//Otherwise we can now look up the actual on disk path to said file
-	info, ok := server.library.GetFileRecord(titleID, version)
+	info, ok := server.library.FileIndex.GetFileRecord(titleID, version)
 	if !ok {
 		return nil, "", 0, fmt.Errorf("couldn't lookup path %s", path)
 	}

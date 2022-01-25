@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ralim/switchhost/formats"
+	"github.com/ralim/switchhost/library/index"
 	"github.com/ralim/switchhost/termui"
 	"github.com/ralim/switchhost/utilities"
 	"github.com/rs/zerolog/log"
@@ -44,7 +45,7 @@ func (lib *Library) fileorganisationWorker() {
 				if status != nil {
 					status.UpdateStatus(fmt.Sprintf("Handling Delete of %s", fileShortName))
 				}
-				lib.sortFileHandleRemoved(event)
+				lib.FileIndex.RemoveFile(event.path)
 			} else {
 				info := event.metadata
 				if status != nil {
@@ -55,7 +56,7 @@ func (lib *Library) fileorganisationWorker() {
 					status.UpdateStatus(fmt.Sprintf("Processing %s", fileShortName))
 				}
 				//Add to our repo, moved or not
-				record := &FileOnDiskRecord{
+				record := &index.FileOnDiskRecord{
 					Path:    fileResultingPath,
 					TitleID: info.TitleID,
 					Version: info.Version,
@@ -65,8 +66,10 @@ func (lib *Library) fileorganisationWorker() {
 				if gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID); err == nil {
 					record.Name = gameTitle
 				}
-
-				lib.AddFileRecord(record)
+				if lib.ui != nil {
+					defer lib.ui.Statistics.Redraw()
+				}
+				lib.FileIndex.AddFileRecord(record)
 				event.path = fileResultingPath
 				lib.postFileAddToLibraryHooks(event)
 				if status != nil {
@@ -171,36 +174,4 @@ func (lib *Library) determineIdealFilePath(info *formats.FileInfo, sourceFile st
 	outputName, err := filepath.Abs(outputName)
 	return outputName, err
 
-}
-
-func (lib *Library) sortFileHandleRemoved(event *fileScanningInfo) {
-
-	// Scan the list of known files and check if the path matches
-	if oldPath, err := filepath.Abs(event.path); err == nil {
-		log.Info().Str("path", oldPath).Msg("Delete event")
-		for key, item := range lib.filesKnown {
-			items := item.GetFiles()
-			match := false
-			for _, item := range items {
-				if item.Path == oldPath {
-					//This one is a match
-					match = true
-				} else if strings.HasPrefix(item.Path, oldPath) {
-					match = true
-				}
-			}
-			if match {
-				//Dump the old record, requeue all files
-				log.Info().Str("path", oldPath).Msg("Deleted path matched, rescanning")
-				delete(lib.filesKnown, key)
-				for _, item := range items {
-					event := &fileScanningInfo{
-						path: item.Path,
-					}
-					lib.fileMetaScanRequests <- event
-				}
-				return
-			}
-		}
-	}
 }

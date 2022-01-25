@@ -9,6 +9,7 @@ import (
 
 	"github.com/ralim/switchhost/formats"
 	"github.com/ralim/switchhost/keystore"
+	"github.com/ralim/switchhost/library/index"
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/termui"
 	"github.com/ralim/switchhost/titledb"
@@ -32,12 +33,12 @@ type fileScanningInfo struct {
 
 // Library manages the representation of the game files on disk + their metadata
 type Library struct {
+	FileIndex *index.Index
+
 	//Privates
 	keys     *keystore.Keystore
 	settings *settings.Settings
 	titledb  *titledb.TitlesDB
-
-	filesKnown map[uint64]TitleOnDiskCollection
 
 	waitgroup *sync.WaitGroup
 	//These channels are used for decoupling the workers for each state of the file import pipeline
@@ -70,9 +71,8 @@ func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings, ui *term
 		fileCompressionRequests:    make(chan *fileScanningInfo, settings.QueueLength),
 		folderCleanupRequests:      make(chan string, settings.QueueLength),
 		exit:                       make(chan bool, 10),
-
-		filesKnown: make(map[uint64]TitleOnDiskCollection),
-		waitgroup:  &sync.WaitGroup{},
+		FileIndex:                  index.NewIndex(titledb, settings),
+		waitgroup:                  &sync.WaitGroup{},
 	}
 
 	return library
