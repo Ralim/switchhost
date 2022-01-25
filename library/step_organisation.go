@@ -58,6 +58,9 @@ func (lib *Library) organisationEventHandler(event *fileScanningInfo, status *te
 		log.Error().Str("path", event.path).Msg("BUG: nil metadata in organisation")
 		return
 	}
+	if status != nil {
+		defer status.UpdateStatus("Idle")
+	}
 	lib.organisationLocking.Lock(event.metadata.TitleID)
 	defer lib.organisationLocking.Unlock(event.metadata.TitleID)
 
@@ -93,9 +96,7 @@ func (lib *Library) organisationEventHandler(event *fileScanningInfo, status *te
 		lib.FileIndex.AddFileRecord(record)
 		event.path = fileResultingPath
 		lib.postFileAddToLibraryHooks(event)
-		if status != nil {
-			status.UpdateStatus("Idle")
-		}
+
 	}
 }
 func (lib *Library) postFileAddToLibraryHooks(event *fileScanningInfo) {
