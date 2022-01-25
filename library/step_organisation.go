@@ -41,7 +41,15 @@ func (lib *Library) fileorganisationWorker() {
 			return
 		case event := <-lib.fileOrganisationRequests:
 			lib.organisationEventHandler(event, status)
+			lib.updateTotals()
 		}
+	}
+}
+
+func (lib *Library) updateTotals() {
+	if lib.ui != nil {
+		stats := lib.FileIndex.GetStats()
+		lib.ui.Statistics = &stats
 	}
 }
 

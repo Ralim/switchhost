@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/ralim/switchhost/settings"
+	"github.com/ralim/switchhost/termui"
 	"github.com/ralim/switchhost/titledb"
 	"github.com/rs/zerolog/log"
 )
@@ -15,9 +16,7 @@ import (
 type Index struct {
 	sync.RWMutex // mutex to lock the entire filesKnown map
 	// Totals for statistics
-	TotalTitles  int
-	TotalUpdates int
-	TotalDLC     int
+	statistics termui.Statistics
 
 	//Passed in from the lib
 	titledb  *titledb.TitlesDB
@@ -33,6 +32,12 @@ func NewIndex(titledb *titledb.TitlesDB,
 		settings:   settings,
 		filesKnown: make(map[uint64]TitleOnDiskCollection),
 	}
+}
+
+func (idx *Index) GetStats() termui.Statistics {
+	idx.RWMutex.RLocker().Lock()
+	defer idx.RWMutex.RLocker().Unlock()
+	return idx.statistics
 }
 
 //Lists all tracked files
@@ -103,18 +108,18 @@ func (idx *Index) AddFileRecord(file *FileOnDiskRecord) {
 	if baseTitle == file.TitleID {
 		//Check if we are attempting an overwrite
 		if oldValue.BaseTitle == nil {
-			idx.TotalTitles++
+			idx.statistics.TotalTitles++
 		}
 		oldValue.BaseTitle = idx.handleFileCollision(oldValue.BaseTitle, file)
 	} else if (file.TitleID & 0x0000000000000800) == 0x800 {
 		if oldValue.Update == nil {
-			idx.TotalUpdates++
+			idx.statistics.TotalUpdates++
 		}
 		oldValue.Update = idx.handleFileCollision(oldValue.Update, file)
 	} else {
 		if oldValue.DLC == nil {
 			oldValue.DLC = []FileOnDiskRecord{*file}
-			idx.TotalDLC++
+			idx.statistics.TotalDLC++
 		} else {
 			matched := false
 			for index, oldFile := range oldValue.DLC {
@@ -125,7 +130,7 @@ func (idx *Index) AddFileRecord(file *FileOnDiskRecord) {
 			}
 			if !matched {
 				oldValue.DLC = append(oldValue.DLC, *file)
-				idx.TotalDLC++
+				idx.statistics.TotalDLC++
 			}
 		}
 	}
@@ -269,11 +274,11 @@ func (idx *Index) RemoveFile(path string) {
 			if item.BaseTitle != nil && oldPath == item.BaseTitle.Path {
 				item.BaseTitle = nil
 				save = true
-				idx.TotalTitles--
+				idx.statistics.TotalTitles--
 			} else if item.Update != nil && oldPath == item.Update.Path {
 				item.Update = nil
 				save = true
-				idx.TotalUpdates--
+				idx.statistics.TotalUpdates--
 			} else {
 				//Check the DLC's
 				matchingIndex := -1
@@ -285,7 +290,7 @@ func (idx *Index) RemoveFile(path string) {
 				}
 				if matchingIndex >= 0 {
 					save = true
-					idx.TotalDLC--
+					idx.statistics.TotalDLC--
 					//Slice out the item
 					item.DLC[matchingIndex] = item.DLC[len(item.DLC)-1]
 					item.DLC = item.DLC[:len(item.DLC)-1]
