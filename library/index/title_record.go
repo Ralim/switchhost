@@ -2,7 +2,6 @@ package index
 
 //TitleOnDiskCollection is a semi-logical grouping of titles on disk
 type TitleOnDiskCollection struct {
-	// sync.RWMutex
 	BaseTitle *FileOnDiskRecord
 	Update    *FileOnDiskRecord
 	DLC       []FileOnDiskRecord

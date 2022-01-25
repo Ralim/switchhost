@@ -40,46 +40,51 @@ func (lib *Library) fileorganisationWorker() {
 			lib.exit <- true
 			return
 		case event := <-lib.fileOrganisationRequests:
-			fileShortName := path.Base(event.path)
-			if event.fileWasDeleted {
-				if status != nil {
-					status.UpdateStatus(fmt.Sprintf("Handling Delete of %s", fileShortName))
-				}
-				lib.FileIndex.RemoveFile(event.path)
-			} else {
-				info := event.metadata
-				if status != nil {
-					status.UpdateStatus(fmt.Sprintf("Sorting %s", fileShortName))
-				}
-				fileResultingPath := lib.sortFileIfApplicable(info, event.path, event.mustCleanupFile)
-				if status != nil {
-					status.UpdateStatus(fmt.Sprintf("Processing %s", fileShortName))
-				}
-				//Add to our repo, moved or not
-				record := &index.FileOnDiskRecord{
-					Path:    fileResultingPath,
-					TitleID: info.TitleID,
-					Version: info.Version,
-					Name:    info.EmbeddedTitle,
-					Size:    info.Size,
-				}
-				if gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID); err == nil {
-					record.Name = gameTitle
-				}
-				if lib.ui != nil {
-					defer lib.ui.Statistics.Redraw()
-				}
-				lib.FileIndex.AddFileRecord(record)
-				event.path = fileResultingPath
-				lib.postFileAddToLibraryHooks(event)
-				if status != nil {
-					status.UpdateStatus("Idle")
-				}
-			}
+			lib.organisationEventHandler(event, status)
 		}
 	}
 }
 
+func (lib *Library) organisationEventHandler(event *fileScanningInfo, status *termui.TaskState) {
+	lib.organisationLocking.Lock(event.metadata.TitleID)
+	defer lib.organisationLocking.Unlock(event.metadata.TitleID)
+	fileShortName := path.Base(event.path)
+	if event.fileWasDeleted {
+		if status != nil {
+			status.UpdateStatus(fmt.Sprintf("Handling Delete of %s", fileShortName))
+		}
+		lib.FileIndex.RemoveFile(event.path)
+	} else {
+		info := event.metadata
+		if status != nil {
+			status.UpdateStatus(fmt.Sprintf("Sorting %s", fileShortName))
+		}
+		fileResultingPath := lib.sortFileIfApplicable(info, event.path, event.mustCleanupFile)
+		if status != nil {
+			status.UpdateStatus(fmt.Sprintf("Processing %s", fileShortName))
+		}
+		//Add to our repo, moved or not
+		record := &index.FileOnDiskRecord{
+			Path:    fileResultingPath,
+			TitleID: info.TitleID,
+			Version: info.Version,
+			Name:    info.EmbeddedTitle,
+			Size:    info.Size,
+		}
+		if gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID); err == nil {
+			record.Name = gameTitle
+		}
+		if lib.ui != nil {
+			defer lib.ui.Statistics.Redraw()
+		}
+		lib.FileIndex.AddFileRecord(record)
+		event.path = fileResultingPath
+		lib.postFileAddToLibraryHooks(event)
+		if status != nil {
+			status.UpdateStatus("Idle")
+		}
+	}
+}
 func (lib *Library) postFileAddToLibraryHooks(event *fileScanningInfo) {
 	//Dispatch any post hooks
 	if lib.settings.CompressionEnabled {

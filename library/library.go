@@ -56,6 +56,8 @@ type Library struct {
 	fileCompressionRequests chan *fileScanningInfo
 	exit                    chan bool
 	ui                      *termui.TermUI
+
+	organisationLocking organisationLocks
 }
 
 func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings, ui *termui.TermUI) *Library {
@@ -73,6 +75,7 @@ func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings, ui *term
 		exit:                       make(chan bool, 10),
 		FileIndex:                  index.NewIndex(titledb, settings),
 		waitgroup:                  &sync.WaitGroup{},
+		organisationLocking:        organisationLocks{},
 	}
 
 	return library
