@@ -25,6 +25,9 @@ func (org *organisationLocks) Unlock(titleID uint64) {
 	if !ok {
 		log.Fatal().Msg("Unlock received for missing titleID")
 	}
+	if value == nil {
+		log.Fatal().Msg("Unlock received a nil")
+	}
 	mtx := value.(*sync.Mutex)
 	mtx.Unlock()
 }

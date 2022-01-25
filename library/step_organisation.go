@@ -57,7 +57,7 @@ func (lib *Library) organisationEventHandler(event *fileScanningInfo, status *te
 	} else {
 		info := event.metadata
 		if status != nil {
-			status.UpdateStatus(fmt.Sprintf("Sorting %s", fileShortName))
+			status.UpdateStatus(fmt.Sprintf("Sorting %s (%s)", fileShortName, info.EmbeddedTitle))
 		}
 		fileResultingPath := lib.sortFileIfApplicable(info, event.path, event.mustCleanupFile)
 		if status != nil {
