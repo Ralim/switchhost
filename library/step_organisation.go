@@ -27,7 +27,7 @@ const (
 func (lib *Library) fileorganisationWorker() {
 	defer lib.waitgroup.Done()
 	defer log.Info().Msg("fileorganisationWorker task exiting")
-	var status *termui.TaskState
+	var status *termui.TaskState = nil
 	if lib.ui != nil {
 		status = lib.ui.RegisterTask("Organisation")
 		defer status.UpdateStatus("Exited")
@@ -47,9 +47,12 @@ func (lib *Library) fileorganisationWorker() {
 }
 
 func (lib *Library) updateTotals() {
-	if lib.ui != nil {
+	if lib.ui != nil && lib.ui.Statistics != nil {
 		stats := lib.FileIndex.GetStats()
-		lib.ui.Statistics = &stats
+		lib.ui.Statistics.TotalDLC = stats.TotalDLC
+		lib.ui.Statistics.TotalTitles = stats.TotalTitles
+		lib.ui.Statistics.TotalUpdates = stats.TotalUpdates
+		lib.ui.Statistics.Redraw()
 	}
 }
 
