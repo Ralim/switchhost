@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -100,7 +101,10 @@ func (driver *FTPDriver) getFakeFolderFileInfo(titleInfo index.FileOnDiskRecord)
 func (driver *FTPDriver) ListDir(ctx *ftpserver.Context, path string, callback func(os.FileInfo) error) error {
 	if path == "/" {
 		//Returning virtual folder of titles
-		for _, titleInfo := range driver.library.FileIndex.ListTitleFiles() {
+		titlesList := driver.library.FileIndex.ListTitleFiles()
+		sort.Sort(index.ByName(titlesList))
+
+		for _, titleInfo := range titlesList {
 			//Generate title virtual path
 			_ = callback(driver.getFakeFolderFileInfo(titleInfo))
 		}
