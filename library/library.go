@@ -108,13 +108,6 @@ func (lib *Library) Start() {
 		}
 
 	}
-	// Run first file scan in background
-	lib.waitgroup.Add(1)
-	go lib.RunScan()
-
-	// Start worker thread for handling file parsing
-	lib.waitgroup.Add(1)
-	go lib.fileorganisationWorker()
 
 	// Internal states of the chain (except organisation) run multiple workers to utilise more cores
 	// Process up to CPU count steps at once for each type
@@ -125,6 +118,10 @@ func (lib *Library) Start() {
 
 		lib.waitgroup.Add(1)
 		go lib.fileValidationWorker()
+
+		// Start worker thread for handling file parsing
+		lib.waitgroup.Add(1)
+		go lib.fileorganisationWorker()
 	}
 
 	// Start worker for cleaning up empty folders
@@ -134,6 +131,10 @@ func (lib *Library) Start() {
 	// Start worker for nsz compression
 	lib.waitgroup.Add(1)
 	go lib.compressionWorker()
+
+	// Run first file scan in background
+	lib.waitgroup.Add(1)
+	go lib.RunScan()
 
 }
 
