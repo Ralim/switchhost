@@ -8,7 +8,6 @@ import (
 
 type organisationLocks struct {
 	// To allow multiple organisation (aka file moving) threads to run concurrently we need a way of locking a _titleID_ for each thread.
-	_              sync.Mutex
 	lockedTitleIDs sync.Map
 }
 
