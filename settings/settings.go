@@ -58,9 +58,9 @@ type Settings struct {
 	NSZCommandLine     string `json:"NSZCommandLine"`     // Base command line used to run NSZ
 	CompressionEnabled bool   `json:"compressionEnabled"` // Should files be converted to their compressed verions
 	// Misc
-	LogLevel    int    `json:"logLevel"` // Log level, higher numbers reduce log output
-	LogFilePath string `json:"logPath"`  // Path to persist logs to, if empty none are persisted
-
+	LogLevel    int    `json:"logLevel"`    // Log level, higher numbers reduce log output
+	LogFilePath string `json:"logPath"`     // Path to persist logs to, if empty none are persisted
+	QueueLength int    `json:"queueLength"` // How deep our internal queues are
 	// Private
 	filePath string
 	logFile  *os.File
@@ -98,7 +98,7 @@ func NewSettings(path string) *Settings {
 		TempFilesFolder:       "/tmp",                                                               // Temp files location used for staging FTP uploads
 		ValidateLibrary:       false,                                                                // Should all existing library files be validated
 		ValidateNewFiles:      true,                                                                 // Should "new" files be validated (upload + not library)
-
+		QueueLength:           128,                                                                  // Default to a medium sized queue. Large values are good for speed but consume ram
 		//Add a demo account
 		Users: []AuthUser{
 			{

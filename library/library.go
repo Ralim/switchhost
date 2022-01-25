@@ -15,8 +15,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const ChannelDepth int = 64
-
 // This struct is used for all of the file ingest scanning path.
 // The data in the struct is slowly filled in
 type fileScanningInfo struct {
@@ -66,11 +64,11 @@ func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings, ui *term
 		ui:       ui,
 		keys:     nil,
 		// Channels
-		fileMetaScanRequests:       make(chan *fileScanningInfo, ChannelDepth),
-		fileValidationScanRequests: make(chan *fileScanningInfo, ChannelDepth),
-		fileOrganisationRequests:   make(chan *fileScanningInfo, ChannelDepth),
-		fileCompressionRequests:    make(chan *fileScanningInfo, ChannelDepth),
-		folderCleanupRequests:      make(chan string, ChannelDepth),
+		fileMetaScanRequests:       make(chan *fileScanningInfo, settings.QueueLength),
+		fileValidationScanRequests: make(chan *fileScanningInfo, settings.QueueLength),
+		fileOrganisationRequests:   make(chan *fileScanningInfo, settings.QueueLength),
+		fileCompressionRequests:    make(chan *fileScanningInfo, settings.QueueLength),
+		folderCleanupRequests:      make(chan string, settings.QueueLength),
 		exit:                       make(chan bool, 10),
 
 		filesKnown: make(map[uint64]TitleOnDiskCollection),
