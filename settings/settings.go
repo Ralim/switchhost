@@ -132,6 +132,7 @@ func NewSettings(path string) *Settings {
 
 func (s *Settings) Load() {
 	//Load existing settings file if possible; if not load do nothing
+	log.Info().Str("path", s.filePath).Msg("Loading settings")
 	data, err := ioutil.ReadFile(s.filePath)
 	if err != nil {
 		return

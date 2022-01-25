@@ -266,11 +266,11 @@ func (idx *Index) RemoveFile(path string) {
 		log.Info().Str("path", oldPath).Msg("Delete event")
 		for key, item := range idx.filesKnown {
 			save := false
-			if oldPath == item.BaseTitle.Path {
+			if item.BaseTitle != nil && oldPath == item.BaseTitle.Path {
 				item.BaseTitle = nil
 				save = true
 				idx.TotalTitles--
-			} else if oldPath == item.Update.Path {
+			} else if item.Update != nil && oldPath == item.Update.Path {
 				item.Update = nil
 				save = true
 				idx.TotalUpdates--

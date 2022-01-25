@@ -46,8 +46,13 @@ func (lib *Library) fileorganisationWorker() {
 }
 
 func (lib *Library) organisationEventHandler(event *fileScanningInfo, status *termui.TaskState) {
+	if event.metadata == nil {
+		log.Error().Str("path", event.path).Msg("BUG: nil metadata in organisation")
+		return
+	}
 	lib.organisationLocking.Lock(event.metadata.TitleID)
 	defer lib.organisationLocking.Unlock(event.metadata.TitleID)
+
 	fileShortName := path.Base(event.path)
 	if event.fileWasDeleted {
 		if status != nil {

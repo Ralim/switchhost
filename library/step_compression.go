@@ -62,6 +62,7 @@ func (lib *Library) compressionWorker() {
 							event := &fileScanningInfo{
 								path:           request.path,
 								fileWasDeleted: true,
+								metadata:       request.metadata,
 							}
 							lib.fileOrganisationRequests <- event
 						}
@@ -70,6 +71,7 @@ func (lib *Library) compressionWorker() {
 							event := &fileScanningInfo{
 								path:        newpath,
 								isInLibrary: !lib.settings.ValidateCompressedFiles,
+								metadata:    request.metadata,
 							}
 							lib.fileMetaScanRequests <- event
 						}
