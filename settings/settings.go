@@ -57,8 +57,9 @@ type Settings struct {
 	DeleteValidationFails   bool `json:"deleteValidationFails"` // If a file fails validation, should it be deleted
 
 	// Compression
-	NSZCommandLine     string `json:"NSZCommandLine"`     // Base command line used to run NSZ
-	CompressionEnabled bool   `json:"compressionEnabled"` // Should files be converted to their compressed verions
+	NSZCommandLine         string `json:"NSZCommandLine"`         // Base command line used to run NSZ
+	CompressionEnabled     bool   `json:"compressionEnabled"`     // Should files be converted to their compressed verions
+	CompressionTimeoutMins uint32 `json:"compressionTimeoutMins"` // How many mins compression can take max
 
 	// Misc
 	LogLevel    int    `json:"logLevel"`    // Log level, higher numbers reduce log output
@@ -74,34 +75,35 @@ type Settings struct {
 func NewSettings(path string) *Settings {
 
 	settings := &Settings{
-		filePath:              path,
-		PreferredLangOrder:    []int{1, 0},
-		FoldersToScan:         []string{"./incoming_files"},                                         // Search locations
-		JSONLocations:         []string{},                                                           // Locations in the json to point to backup instances
-		StorageFolder:         "./game_library",                                                     // Storage location
-		CacheFolder:           "/tmp/",                                                              // Where to cache downloaded files to (titledb)
-		EnableSorting:         false,                                                                // default "safe"
-		CleanupEmptyFolders:   true,                                                                 // Relatively safe
-		HTTPPort:              8080,                                                                 // Ports
-		FTPPort:               2121,                                                                 // Ports
-		ServerMOTD:            "Switchroot",                                                         // MOTD to include in the json file
-		LogLevel:              1,                                                                    // Info
-		LogFilePath:           "",                                                                   // No log file
-		OrganisationFormat:    "{TitleName}/{TitleName} {Type} {VersionDec} [{TitleID}][{Version}]", // Path used for organising files
-		NSZCommandLine:        "nsz --verify -w -C -p -t 4 --rm-source ",                            // NSZ command used for file compression
-		CompressionEnabled:    false,                                                                // Should files be compressed using NSZ
-		PreferCompressed:      true,                                                                 // Should compressed files be preferred over non-compressed on duplicate
-		PreferXCI:             false,                                                                // Should XCI files be preferred over nsp on duplicate
-		UploadingAllowed:      false,                                                                // Should FTP allow file uploads
-		Deduplicate:           false,                                                                // Should the software delete duplicate files
-		AllowAnonFTP:          false,                                                                // Should anon users be allowed FTP access
-		AllowAnonHTTP:         false,                                                                // Should anon users be allowed HTTP access
-		DeleteValidationFails: false,                                                                //
-		logFile:               nil,                                                                  // Optional path to a file to log to
-		TempFilesFolder:       "/tmp",                                                               // Temp files location used for staging FTP uploads
-		ValidateLibrary:       false,                                                                // Should all existing library files be validated
-		ValidateNewFiles:      true,                                                                 // Should "new" files be validated (upload + not library)
-		QueueLength:           128,                                                                  // Default to a medium sized queue. Large values are good for speed but consume ram
+		filePath:               path,
+		PreferredLangOrder:     []int{1, 0},
+		FoldersToScan:          []string{"./incoming_files"},                                         // Search locations
+		JSONLocations:          []string{},                                                           // Locations in the json to point to backup instances
+		StorageFolder:          "./game_library",                                                     // Storage location
+		CacheFolder:            "/tmp/",                                                              // Where to cache downloaded files to (titledb)
+		EnableSorting:          false,                                                                // default "safe"
+		CleanupEmptyFolders:    true,                                                                 // Relatively safe
+		HTTPPort:               8080,                                                                 // Ports
+		FTPPort:                2121,                                                                 // Ports
+		ServerMOTD:             "Switchroot",                                                         // MOTD to include in the json file
+		LogLevel:               1,                                                                    // Info
+		LogFilePath:            "",                                                                   // No log file
+		OrganisationFormat:     "{TitleName}/{TitleName} {Type} {VersionDec} [{TitleID}][{Version}]", // Path used for organising files
+		NSZCommandLine:         "nsz --verify -w -C -p -t 4 --rm-source ",                            // NSZ command used for file compression
+		CompressionEnabled:     false,                                                                // Should files be compressed using NSZ
+		PreferCompressed:       true,                                                                 // Should compressed files be preferred over non-compressed on duplicate
+		PreferXCI:              false,                                                                // Should XCI files be preferred over nsp on duplicate
+		UploadingAllowed:       false,                                                                // Should FTP allow file uploads
+		Deduplicate:            false,                                                                // Should the software delete duplicate files
+		AllowAnonFTP:           false,                                                                // Should anon users be allowed FTP access
+		AllowAnonHTTP:          false,                                                                // Should anon users be allowed HTTP access
+		DeleteValidationFails:  false,                                                                //
+		logFile:                nil,                                                                  // Optional path to a file to log to
+		TempFilesFolder:        "/tmp",                                                               // Temp files location used for staging FTP uploads
+		ValidateLibrary:        false,                                                                // Should all existing library files be validated
+		ValidateNewFiles:       true,                                                                 // Should "new" files be validated (upload + not library)
+		QueueLength:            128,                                                                  // Default to a medium sized queue. Large values are good for speed but consume ram
+		CompressionTimeoutMins: 60,                                                                   // We are super conservative incase of user with slow pc
 		//Add a demo account
 		Users: []AuthUser{
 			{
