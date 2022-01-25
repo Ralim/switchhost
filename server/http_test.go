@@ -8,8 +8,8 @@ import (
 	"path"
 	"testing"
 
+	"github.com/ralim/switchhost/index"
 	"github.com/ralim/switchhost/library"
-	"github.com/ralim/switchhost/library/index"
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/titledb"
 )

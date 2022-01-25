@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ralim/switchhost/library/index"
+	"github.com/ralim/switchhost/index"
 	"github.com/ralim/switchhost/utilities"
 )
 

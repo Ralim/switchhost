@@ -8,8 +8,8 @@ import (
 	"sync"
 
 	"github.com/ralim/switchhost/formats"
+	"github.com/ralim/switchhost/index"
 	"github.com/ralim/switchhost/keystore"
-	"github.com/ralim/switchhost/library/index"
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/termui"
 	"github.com/ralim/switchhost/titledb"

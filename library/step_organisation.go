@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/ralim/switchhost/formats"
-	"github.com/ralim/switchhost/library/index"
+	"github.com/ralim/switchhost/index"
 	"github.com/ralim/switchhost/termui"
 	"github.com/ralim/switchhost/utilities"
 	"github.com/rs/zerolog/log"
