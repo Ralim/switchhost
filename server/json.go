@@ -35,9 +35,9 @@ func (server *Server) generateFileJSONPayload(writer io.Writer, hostNameToUse st
 		response.MOTD = &server.settings.ServerMOTD
 	}
 
-	for _, file := range server.library.ListFiles() {
+	for _, file := range server.library.FileIndex.ListFiles() {
 		response.Files = append(response.Files, fileEntry{URL: server.GenerateVirtualFilePath(file, hostNameToUse, useHTTPS), Size: file.Size, Name: utilities.CleanName(file.Name)})
-		fileinfo, ok := server.library.LookupFileInfo(file)
+		fileinfo, ok := server.library.FileIndex.LookupFileInfo(file)
 		if ok {
 			response.TitleDB[fileinfo.StringID] = fileinfo
 		}

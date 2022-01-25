@@ -16,7 +16,7 @@ func (web *WebUI) RenderGameListing(writer io.Writer) error {
 	}
 
 	i := 0
-	for _, game := range web.lib.ListTitleFiles() {
+	for _, game := range web.lib.FileIndex.ListTitleFiles() {
 		if i > 0 && i%4 == 0 {
 			if _, err := writer.Write([]byte(`</div><div class="row">`)); err != nil {
 				return ErrBadTemplate

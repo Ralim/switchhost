@@ -1,47 +1,47 @@
-package library
+package index
 
 import (
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
+	"sync"
 
+	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/titledb"
 	"github.com/rs/zerolog/log"
 )
 
-//TitleOnDiskCollection is a semi-logical grouping of titles on disk
+type Index struct {
+	sync.RWMutex // mutex to lock the entire filesKnown map
+	// Totals for statistics
+	TotalTitles  int
+	TotalUpdates int
+	TotalDLC     int
 
-type TitleOnDiskCollection struct {
-	BaseTitle *FileOnDiskRecord
-	Update    *FileOnDiskRecord
-	DLC       []FileOnDiskRecord
+	//Passed in from the lib
+	titledb  *titledb.TitlesDB
+	settings *settings.Settings
+
+	filesKnown map[uint64]TitleOnDiskCollection
 }
 
-type FileOnDiskRecord struct {
-	Path    string
-	TitleID uint64
-	Version uint32
-	Name    string
-	Size    int64
-}
-
-func (r *TitleOnDiskCollection) GetFiles() []FileOnDiskRecord {
-	values := make([]FileOnDiskRecord, 0)
-	if r.BaseTitle != nil {
-		values = append(values, *r.BaseTitle)
+func NewIndex(titledb *titledb.TitlesDB,
+	settings *settings.Settings) *Index {
+	return &Index{
+		titledb:    titledb,
+		settings:   settings,
+		filesKnown: make(map[uint64]TitleOnDiskCollection),
 	}
-	if r.Update != nil {
-		values = append(values, *r.Update)
-	}
-
-	values = append(values, r.DLC...)
-	return values
 }
 
 //Lists all tracked files
-func (lib *Library) ListFiles() []FileOnDiskRecord {
-	values := make([]FileOnDiskRecord, 0, len(lib.filesKnown))
-	for _, v := range lib.filesKnown {
+func (idx *Index) ListFiles() []FileOnDiskRecord {
+	idx.RWMutex.RLocker().Lock()
+	defer idx.RWMutex.RLocker().Unlock()
+
+	values := make([]FileOnDiskRecord, 0, len(idx.filesKnown))
+	for _, v := range idx.filesKnown {
 		if v.BaseTitle != nil {
 			values = append(values, *v.BaseTitle)
 		}
@@ -55,9 +55,12 @@ func (lib *Library) ListFiles() []FileOnDiskRecord {
 }
 
 //Will only lists title files, of if title is missing the update, if thats missing, the dlc
-func (lib *Library) ListTitleFiles() []FileOnDiskRecord {
-	values := make([]FileOnDiskRecord, 0, len(lib.filesKnown))
-	for _, v := range lib.filesKnown {
+func (idx *Index) ListTitleFiles() []FileOnDiskRecord {
+	idx.RWMutex.RLocker().Lock()
+	defer idx.RWMutex.RLocker().Unlock()
+
+	values := make([]FileOnDiskRecord, 0, len(idx.filesKnown))
+	for _, v := range idx.filesKnown {
 		if v.BaseTitle != nil {
 			values = append(values, *v.BaseTitle)
 		} else if v.Update != nil {
@@ -68,14 +71,13 @@ func (lib *Library) ListTitleFiles() []FileOnDiskRecord {
 	}
 	return values
 }
-func (lib *Library) LookupFileInfo(file FileOnDiskRecord) (titledb.TitleDBEntry, bool) {
-	return lib.titledb.QueryGameFromTitleID(file.TitleID)
+func (idx *Index) LookupFileInfo(file FileOnDiskRecord) (titledb.TitleDBEntry, bool) {
+	return idx.titledb.QueryGameFromTitleID(file.TitleID)
 }
 
-func (lib *Library) AddFileRecord(file *FileOnDiskRecord) {
-	if lib.ui != nil {
-		defer lib.ui.Statistics.Redraw()
-	}
+func (idx *Index) AddFileRecord(file *FileOnDiskRecord) {
+	idx.RWMutex.Lock()
+	defer idx.RWMutex.Unlock()
 	//Depending on game type add to the appropriate record
 	//Game updates have the same ProgramId as the main application, except with bitmask 0x800 set.
 	//https://wiki.gbatemp.net/wiki/List_of_Switch_homebrew_titleID
@@ -93,48 +95,44 @@ func (lib *Library) AddFileRecord(file *FileOnDiskRecord) {
 		return
 	}
 
-	oldValue, ok := lib.filesKnown[baseTitle]
+	oldValue, ok := idx.filesKnown[baseTitle]
 	if !ok {
 		//Need to make entry
 		oldValue = TitleOnDiskCollection{}
 	}
 	if baseTitle == file.TitleID {
 		//Check if we are attempting an overwrite
-		if oldValue.BaseTitle == nil && lib.ui != nil {
-			lib.ui.Statistics.TotalTitles++
+		if oldValue.BaseTitle == nil {
+			idx.TotalTitles++
 		}
-		oldValue.BaseTitle = lib.handleFileCollision(oldValue.BaseTitle, file)
+		oldValue.BaseTitle = idx.handleFileCollision(oldValue.BaseTitle, file)
 	} else if (file.TitleID & 0x0000000000000800) == 0x800 {
-		if oldValue.Update == nil && lib.ui != nil {
-			lib.ui.Statistics.TotalUpdates++
+		if oldValue.Update == nil {
+			idx.TotalUpdates++
 		}
-		oldValue.Update = lib.handleFileCollision(oldValue.Update, file)
+		oldValue.Update = idx.handleFileCollision(oldValue.Update, file)
 	} else {
 		if oldValue.DLC == nil {
 			oldValue.DLC = []FileOnDiskRecord{*file}
-			if lib.ui != nil {
-				lib.ui.Statistics.TotalDLC++
-			}
+			idx.TotalDLC++
 		} else {
 			matched := false
 			for index, oldFile := range oldValue.DLC {
 				if oldFile.TitleID == file.TitleID {
 					matched = true
-					oldValue.DLC[index] = *lib.handleFileCollision(&oldFile, file)
+					oldValue.DLC[index] = *idx.handleFileCollision(&oldFile, file)
 				}
 			}
 			if !matched {
 				oldValue.DLC = append(oldValue.DLC, *file)
-				if lib.ui != nil {
-					lib.ui.Statistics.TotalDLC++
-				}
+				idx.TotalDLC++
 			}
 		}
 	}
-	lib.filesKnown[baseTitle] = oldValue
+	idx.filesKnown[baseTitle] = oldValue
 }
 
-func (lib *Library) handleFileCollision(existing, proposed *FileOnDiskRecord) *FileOnDiskRecord {
+func (idx *Index) handleFileCollision(existing, proposed *FileOnDiskRecord) *FileOnDiskRecord {
 	//Given a collision, figure out the one to keep, do any deletes, and return the kept one
 	if existing == nil {
 		return proposed
@@ -152,7 +150,7 @@ func (lib *Library) handleFileCollision(existing, proposed *FileOnDiskRecord) *F
 		old = proposed
 		new = existing
 	}
-	if lib.settings.Deduplicate {
+	if idx.settings.Deduplicate {
 		//remove the older of the pair of files, or based on preferences
 		if new.Version != old.Version {
 			log.Info().Str("path", old.Path).Msg("Cleaning up file as newer exists")
@@ -167,7 +165,7 @@ func (lib *Library) handleFileCollision(existing, proposed *FileOnDiskRecord) *F
 			//Prefer compressed files, if they are different we can use this to decide
 			if strings.HasSuffix(extNew, "z") != strings.HasSuffix(extOld, "z") {
 				//Mismatch compression selection
-				selectNew := (strings.HasSuffix(extNew, "z") && lib.settings.PreferCompressed) || strings.HasSuffix(extOld, "z") && !lib.settings.PreferCompressed
+				selectNew := (strings.HasSuffix(extNew, "z") && idx.settings.PreferCompressed) || strings.HasSuffix(extOld, "z") && !idx.settings.PreferCompressed
 
 				if selectNew {
 					log.Info().Str("path", old.Path).Msg("Cleaning up file based on compression rules")
@@ -187,7 +185,7 @@ func (lib *Library) handleFileCollision(existing, proposed *FileOnDiskRecord) *F
 				if extNew[0:3] != extOld[0:3] {
 					newType := extNew[1:3]
 					oldType := extOld[1:3]
-					if lib.settings.PreferXCI {
+					if idx.settings.PreferXCI {
 						if newType == "xc" {
 							log.Info().Str("path", old.Path).Msg("Cleaning up file as newer is preferred type")
 							if err := os.Remove(old.Path); err != nil {
@@ -224,13 +222,17 @@ func (lib *Library) handleFileCollision(existing, proposed *FileOnDiskRecord) *F
 	return new
 }
 
-func (lib *Library) GetFilesForTitleID(titleid uint64) (TitleOnDiskCollection, bool) {
-	val, ok := lib.filesKnown[titleid]
+func (idx *Index) GetFilesForTitleID(titleid uint64) (TitleOnDiskCollection, bool) {
+	idx.RWMutex.RLocker().Lock()
+	defer idx.RWMutex.RLocker().Unlock()
+	val, ok := idx.filesKnown[titleid]
 	return val, ok
 }
-func (lib *Library) GetFileRecord(titleID uint64, version uint32) (*FileOnDiskRecord, bool) {
+func (idx *Index) GetFileRecord(titleID uint64, version uint32) (*FileOnDiskRecord, bool) {
+	idx.RWMutex.RLocker().Lock()
+	defer idx.RWMutex.RLocker().Unlock()
 	baseTitle := titleID & 0xFFFFFFFFFFFFE000
-	record, ok := lib.filesKnown[baseTitle]
+	record, ok := idx.filesKnown[baseTitle]
 	if !ok {
 		return nil, false
 	}
@@ -254,4 +256,47 @@ func (lib *Library) GetFileRecord(titleID uint64, version uint32) (*FileOnDiskRe
 	}
 	return nil, false
 
+}
+
+func (idx *Index) RemoveFile(path string) {
+	idx.RWMutex.Lock()
+	defer idx.RWMutex.Unlock()
+	// Scan the list of known files and check if the path matches
+	if oldPath, err := filepath.Abs(path); err == nil {
+		log.Info().Str("path", oldPath).Msg("Delete event")
+		for key, item := range idx.filesKnown {
+			save := false
+			if oldPath == item.BaseTitle.Path {
+				item.BaseTitle = nil
+				save = true
+				idx.TotalTitles--
+			} else if oldPath == item.Update.Path {
+				item.Update = nil
+				save = true
+				idx.TotalUpdates--
+			} else {
+				//Check the DLC's
+				matchingIndex := -1
+				for i, d := range item.DLC {
+					if d.Path == oldPath {
+
+						matchingIndex = i
+					}
+				}
+				if matchingIndex >= 0 {
+					save = true
+					idx.TotalDLC--
+					//Slice out the item
+					item.DLC[matchingIndex] = item.DLC[len(item.DLC)-1]
+					item.DLC = item.DLC[:len(item.DLC)-1]
+				}
+
+			}
+
+			if save {
+				idx.filesKnown[key] = item
+				return
+			}
+		}
+	}
 }
