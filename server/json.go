@@ -18,22 +18,26 @@ type fileEntry struct {
 type jsonIndex struct {
 	Files           []fileEntry                     `json:"files"`
 	Folders         []string                        `json:"directories"`
-	MOTD            string                          `json:"success"`
+	MOTD            *string                         `json:"success,omitempty"`
 	TitleDB         map[string]titledb.TitleDBEntry `json:"titledb"`
 	BackupLocations []string                        `json:"locations"`
+	Headers         *[]string                       `json:"headers,omitempty"`
 }
 
-func (server *Server) generateFileJSONPayload(writer io.Writer, hostNameToUse string, useHTTPS bool) error {
+func (server *Server) generateFileJSONPayload(writer io.Writer, hostNameToUse string, useHTTPS bool, customHeaders *[]string) error {
 	response := jsonIndex{
 		Files:           []fileEntry{},
-		MOTD:            server.settings.ServerMOTD,
 		TitleDB:         make(map[string]titledb.TitleDBEntry),
 		BackupLocations: server.settings.JSONLocations,
+		Headers:         customHeaders,
+	}
+	if len(server.settings.ServerMOTD) > 0 {
+		response.MOTD = &server.settings.ServerMOTD
 	}
 
-	for _, file := range server.library.ListFiles() {
+	for _, file := range server.library.FileIndex.ListFiles() {
 		response.Files = append(response.Files, fileEntry{URL: server.GenerateVirtualFilePath(file, hostNameToUse, useHTTPS), Size: file.Size, Name: utilities.CleanName(file.Name)})
-		fileinfo, ok := server.library.LookupFileInfo(file)
+		fileinfo, ok := server.library.FileIndex.LookupFileInfo(file)
 		if ok {
 			response.TitleDB[fileinfo.StringID] = fileinfo
 		}

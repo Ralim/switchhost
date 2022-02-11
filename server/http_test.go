@@ -8,6 +8,7 @@ import (
 	"path"
 	"testing"
 
+	"github.com/ralim/switchhost/index"
 	"github.com/ralim/switchhost/library"
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/titledb"
@@ -36,7 +37,7 @@ func TestHTTPServerbasics(t *testing.T) {
 	//Now we can fake poke server handlers
 	tempBuffer := bytes.NewBuffer([]byte{})
 
-	err := server.generateFileJSONPayload(tempBuffer, "test", false)
+	err := server.generateFileJSONPayload(tempBuffer, "test", false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,14 +46,14 @@ func TestHTTPServerbasics(t *testing.T) {
 		t.Errorf("response doesnt match expected >%s<", response)
 	}
 	//Now insert a game into the library and run tests with content
-	file := &library.FileOnDiskRecord{
+	file := &index.FileOnDiskRecord{
 		Path:    "../testing_files/UnitTest_[05123A0000000000].nsp",
 		TitleID: 0x05123A0000000000,
 		Version: 0x0,
 		Name:    "UnitTest",
 	}
-	lib.AddFileRecord(file)
-	err = server.generateFileJSONPayload(tempBuffer, "test", false)
+	lib.FileIndex.AddFileRecord(file)
+	err = server.generateFileJSONPayload(tempBuffer, "test", false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,13 +106,13 @@ func TestHTTPFileServingBinary(t *testing.T) {
 	server, lib, temp_folder := maketestServer(t)
 	defer os.RemoveAll(temp_folder)
 
-	file := &library.FileOnDiskRecord{
+	file := &index.FileOnDiskRecord{
 		Path:    "../testing_files/UnitTest_[05123A0000000000].nsp",
 		TitleID: 0x05123A0000000000,
 		Version: 0x0,
 		Name:    "UnitTest",
 	}
-	lib.AddFileRecord(file)
+	lib.FileIndex.AddFileRecord(file)
 
 	req, err := http.NewRequest("GET", "vfile/365418291444842496/0/data.bin", nil)
 	if err != nil {
@@ -146,13 +147,13 @@ func TestHTTPFileServingBinaryRangeBytes(t *testing.T) {
 	server, lib, temp_folder := maketestServer(t)
 	defer os.RemoveAll(temp_folder)
 
-	file := &library.FileOnDiskRecord{
+	file := &index.FileOnDiskRecord{
 		Path:    "../testing_files/UnitTest_[05123A0000000000].nsp",
 		TitleID: 0x05123A0000000000,
 		Version: 0x0,
 		Name:    "UnitTest",
 	}
-	lib.AddFileRecord(file)
+	lib.FileIndex.AddFileRecord(file)
 
 	req, err := http.NewRequest("GET", "vfile/365418291444842496/0/data.bin", nil)
 	if err != nil {

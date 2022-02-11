@@ -29,13 +29,12 @@ func (server *Server) StartHTTP() {
 	// Install some provided extra handler to set some request's context fields.
 	// Thanks to that handler, all our logs will come with some prepopulated fields.
 	c = c.Append(hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
-		hlog.FromRequest(r).Info().
-			Str("method", r.Method).
+		hlog.FromRequest(r).Debug().
 			Stringer("url", r.URL).
 			Int("status", status).
 			Int("size", size).
 			Dur("duration", duration).
-			Msg("")
+			Msg(r.Method)
 	}))
 	c = c.Append(hlog.RemoteAddrHandler("ip"))
 	c = c.Append(hlog.UserAgentHandler("user_agent"))
@@ -47,14 +46,21 @@ func (server *Server) StartHTTP() {
 	if err := server.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Error().Err(err).Msg("HTTP server closed")
 	} else {
-		log.Info().Msg("HTTP server closed")
+		log.Warn().Msg("HTTP server closed")
 	}
 
 }
 
 func (server *Server) httpHandleJSON(respWriter http.ResponseWriter, r *http.Request) {
 	respWriter.Header().Set("Content-Type", "application/json")
-	err := server.generateFileJSONPayload(respWriter, r.Host, false)
+	//Extract auth header and request it to be sent with all following requests
+	var headers *[]string
+	if v, ok := r.Header["Authorization"]; ok {
+		if len(v) > 0 {
+			headers = &[]string{"Authorization: " + v[0]}
+		}
+	}
+	err := server.generateFileJSONPayload(respWriter, r.Host, false, headers)
 	if err != nil {
 		http.Error(respWriter, "Generating index failed", http.StatusInternalServerError)
 		return

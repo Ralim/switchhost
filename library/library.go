@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/ralim/switchhost/formats"
+	"github.com/ralim/switchhost/index"
 	"github.com/ralim/switchhost/keystore"
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/termui"
@@ -32,12 +33,12 @@ type fileScanningInfo struct {
 
 // Library manages the representation of the game files on disk + their metadata
 type Library struct {
+	FileIndex *index.Index
+
 	//Privates
 	keys     *keystore.Keystore
 	settings *settings.Settings
 	titledb  *titledb.TitlesDB
-
-	filesKnown map[uint64]TitleOnDiskCollection
 
 	waitgroup *sync.WaitGroup
 	//These channels are used for decoupling the workers for each state of the file import pipeline
@@ -55,6 +56,8 @@ type Library struct {
 	fileCompressionRequests chan *fileScanningInfo
 	exit                    chan bool
 	ui                      *termui.TermUI
+
+	organisationLocking organisationLocks
 }
 
 func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings, ui *termui.TermUI) *Library {
@@ -70,9 +73,9 @@ func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings, ui *term
 		fileCompressionRequests:    make(chan *fileScanningInfo, settings.QueueLength),
 		folderCleanupRequests:      make(chan string, settings.QueueLength),
 		exit:                       make(chan bool, 10),
-
-		filesKnown: make(map[uint64]TitleOnDiskCollection),
-		waitgroup:  &sync.WaitGroup{},
+		FileIndex:                  index.NewIndex(titledb, settings),
+		waitgroup:                  &sync.WaitGroup{},
+		organisationLocking:        organisationLocks{},
 	}
 
 	return library
@@ -105,13 +108,6 @@ func (lib *Library) Start() {
 		}
 
 	}
-	// Run first file scan in background
-	lib.waitgroup.Add(1)
-	go lib.RunScan()
-
-	// Start worker thread for handling file parsing
-	lib.waitgroup.Add(1)
-	go lib.fileorganisationWorker()
 
 	// Internal states of the chain (except organisation) run multiple workers to utilise more cores
 	// Process up to CPU count steps at once for each type
@@ -122,6 +118,10 @@ func (lib *Library) Start() {
 
 		lib.waitgroup.Add(1)
 		go lib.fileValidationWorker()
+
+		// Start worker thread for handling file parsing
+		lib.waitgroup.Add(1)
+		go lib.fileorganisationWorker()
 	}
 
 	// Start worker for cleaning up empty folders
@@ -131,6 +131,10 @@ func (lib *Library) Start() {
 	// Start worker for nsz compression
 	lib.waitgroup.Add(1)
 	go lib.compressionWorker()
+
+	// Run first file scan in background
+	lib.waitgroup.Add(1)
+	go lib.RunScan()
 
 }
 

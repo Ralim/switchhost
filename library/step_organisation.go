@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ralim/switchhost/formats"
+	"github.com/ralim/switchhost/index"
 	"github.com/ralim/switchhost/termui"
 	"github.com/ralim/switchhost/utilities"
 	"github.com/rs/zerolog/log"
@@ -26,7 +27,7 @@ const (
 func (lib *Library) fileorganisationWorker() {
 	defer lib.waitgroup.Done()
 	defer log.Info().Msg("fileorganisationWorker task exiting")
-	var status *termui.TaskState
+	var status *termui.TaskState = nil
 	if lib.ui != nil {
 		status = lib.ui.RegisterTask("Organisation")
 		defer status.UpdateStatus("Exited")
@@ -39,44 +40,68 @@ func (lib *Library) fileorganisationWorker() {
 			lib.exit <- true
 			return
 		case event := <-lib.fileOrganisationRequests:
-			fileShortName := path.Base(event.path)
-			if event.fileWasDeleted {
-				if status != nil {
-					status.UpdateStatus(fmt.Sprintf("Handling Delete of %s", fileShortName))
-				}
-				lib.sortFileHandleRemoved(event)
-			} else {
-				info := event.metadata
-				if status != nil {
-					status.UpdateStatus(fmt.Sprintf("Sorting %s", fileShortName))
-				}
-				fileResultingPath := lib.sortFileIfApplicable(info, event.path, event.mustCleanupFile)
-				if status != nil {
-					status.UpdateStatus(fmt.Sprintf("Processing %s", fileShortName))
-				}
-				//Add to our repo, moved or not
-				record := &FileOnDiskRecord{
-					Path:    fileResultingPath,
-					TitleID: info.TitleID,
-					Version: info.Version,
-					Name:    info.EmbeddedTitle,
-					Size:    info.Size,
-				}
-				if gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID); err == nil {
-					record.Name = gameTitle
-				}
-
-				lib.AddFileRecord(record)
-				event.path = fileResultingPath
-				lib.postFileAddToLibraryHooks(event)
-				if status != nil {
-					status.UpdateStatus("Idle")
-				}
-			}
+			lib.organisationEventHandler(event, status)
+			lib.updateTotals()
 		}
 	}
 }
 
+func (lib *Library) updateTotals() {
+	if lib.ui != nil && lib.ui.Statistics != nil {
+		stats := lib.FileIndex.GetStats()
+		lib.ui.Statistics.TotalDLC = stats.TotalDLC
+		lib.ui.Statistics.TotalTitles = stats.TotalTitles
+		lib.ui.Statistics.TotalUpdates = stats.TotalUpdates
+		lib.ui.Statistics.Redraw()
+	}
+}
+
+func (lib *Library) organisationEventHandler(event *fileScanningInfo, status *termui.TaskState) {
+	if event.metadata == nil {
+		log.Error().Str("path", event.path).Msg("BUG: nil metadata in organisation")
+		return
+	}
+	if status != nil {
+		defer status.UpdateStatus("Idle")
+	}
+	lib.organisationLocking.Lock(event.metadata.TitleID)
+	defer lib.organisationLocking.Unlock(event.metadata.TitleID)
+
+	fileShortName := path.Base(event.path)
+	if event.fileWasDeleted {
+		if status != nil {
+			status.UpdateStatus(fmt.Sprintf("Handling Delete of %s", fileShortName))
+		}
+		lib.FileIndex.RemoveFile(event.path)
+	} else {
+		info := event.metadata
+		if status != nil {
+			status.UpdateStatus(fmt.Sprintf("Sorting %s (%s)", fileShortName, info.EmbeddedTitle))
+		}
+		fileResultingPath := lib.sortFileIfApplicable(info, event.path, event.mustCleanupFile)
+		if status != nil {
+			status.UpdateStatus(fmt.Sprintf("Processing %s", fileShortName))
+		}
+		//Add to our repo, moved or not
+		record := &index.FileOnDiskRecord{
+			Path:    fileResultingPath,
+			TitleID: info.TitleID,
+			Version: info.Version,
+			Name:    info.EmbeddedTitle,
+			Size:    info.Size,
+		}
+		if gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID); err == nil {
+			record.Name = gameTitle
+		}
+		if lib.ui != nil {
+			defer lib.ui.Statistics.Redraw()
+		}
+		lib.FileIndex.AddFileRecord(record)
+		event.path = fileResultingPath
+		lib.postFileAddToLibraryHooks(event)
+
+	}
+}
 func (lib *Library) postFileAddToLibraryHooks(event *fileScanningInfo) {
 	//Dispatch any post hooks
 	if lib.settings.CompressionEnabled {
@@ -171,36 +196,4 @@ func (lib *Library) determineIdealFilePath(info *formats.FileInfo, sourceFile st
 	outputName, err := filepath.Abs(outputName)
 	return outputName, err
 
-}
-
-func (lib *Library) sortFileHandleRemoved(event *fileScanningInfo) {
-
-	// Scan the list of known files and check if the path matches
-	if oldPath, err := filepath.Abs(event.path); err == nil {
-		log.Info().Str("path", oldPath).Msg("Delete event")
-		for key, item := range lib.filesKnown {
-			items := item.GetFiles()
-			match := false
-			for _, item := range items {
-				if item.Path == oldPath {
-					//This one is a match
-					match = true
-				} else if strings.HasPrefix(item.Path, oldPath) {
-					match = true
-				}
-			}
-			if match {
-				//Dump the old record, requeue all files
-				log.Info().Str("path", oldPath).Msg("Deleted path matched, rescanning")
-				delete(lib.filesKnown, key)
-				for _, item := range items {
-					event := &fileScanningInfo{
-						path: item.Path,
-					}
-					lib.fileMetaScanRequests <- event
-				}
-				return
-			}
-		}
-	}
 }

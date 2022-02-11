@@ -8,9 +8,11 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/ralim/switchhost/index"
 	"github.com/ralim/switchhost/library"
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/utilities"
@@ -47,7 +49,7 @@ func CreateVirtualFTP(lib *library.Library, settings *settings.Settings) *FTPSer
 func (ftp *FTPServer) Start() {
 	err := ftp.server.ListenAndServe()
 	if err != nil {
-		log.Error().Err(err).Msg("FTP server exited")
+		log.Warn().Err(err).Msg("FTP server exited")
 	}
 }
 func (ftp *FTPServer) Stop() {
@@ -89,7 +91,7 @@ func (driver *FTPDriver) dirPathToTitleID(path string) (uint64, error) {
 	return 0, errors.New("couldnt parse")
 }
 
-func (driver *FTPDriver) getFakeFolderFileInfo(titleInfo library.FileOnDiskRecord) os.FileInfo {
+func (driver *FTPDriver) getFakeFolderFileInfo(titleInfo index.FileOnDiskRecord) os.FileInfo {
 	virtualpath := fmt.Sprintf("%s [%d]", utilities.CleanName(titleInfo.Name), titleInfo.TitleID)
 	info := NewFakeFolder(virtualpath)
 	return &info
@@ -99,14 +101,17 @@ func (driver *FTPDriver) getFakeFolderFileInfo(titleInfo library.FileOnDiskRecor
 func (driver *FTPDriver) ListDir(ctx *ftpserver.Context, path string, callback func(os.FileInfo) error) error {
 	if path == "/" {
 		//Returning virtual folder of titles
-		for _, titleInfo := range driver.library.ListTitleFiles() {
+		titlesList := driver.library.FileIndex.ListTitleFiles()
+		sort.Sort(index.ByName(titlesList))
+
+		for _, titleInfo := range titlesList {
 			//Generate title virtual path
 			_ = callback(driver.getFakeFolderFileInfo(titleInfo))
 		}
 	} else {
 		//Most likely a path to a folder of files
 		if titleID, err := driver.dirPathToTitleID(path); err == nil {
-			val, ok := driver.library.GetFilesForTitleID(titleID)
+			val, ok := driver.library.FileIndex.GetFilesForTitleID(titleID)
 			if ok {
 				//Now need to yield os info's for all of the underlying files
 				for _, file := range val.GetFiles() {
@@ -121,7 +126,7 @@ func (driver *FTPDriver) ListDir(ctx *ftpserver.Context, path string, callback f
 	}
 	return nil
 }
-func (driver *FTPDriver) getfakepathForRealFile(file library.FileOnDiskRecord) string {
+func (driver *FTPDriver) getfakepathForRealFile(file index.FileOnDiskRecord) string {
 	ext := path.Ext(file.Path)
 	fileTitle := fmt.Sprintf("%s - [%d][%d]%s", file.Name, file.TitleID, file.Version, ext)
 	return path.Join(fileTitle)
@@ -143,7 +148,7 @@ func (driver *FTPDriver) getRealFilePathFromVirtual(path string) (string, bool) 
 	if err != nil {
 		return "", false
 	}
-	value, ok := driver.library.GetFileRecord(titleID, uint32(version))
+	value, ok := driver.library.FileIndex.GetFileRecord(titleID, uint32(version))
 	if !ok {
 		return "", false
 	}
@@ -157,7 +162,7 @@ func (driver *FTPDriver) Stat(ctx *ftpserver.Context, path string) (os.FileInfo,
 	}
 	if titleid, err := driver.dirPathToTitleID(path); err == nil {
 		//This is a file folder, generate faux info
-		if titleInfo, ok := driver.library.GetFilesForTitleID(titleid); ok {
+		if titleInfo, ok := driver.library.FileIndex.GetFilesForTitleID(titleid); ok {
 			files := titleInfo.GetFiles()
 			if len(files) > 0 {
 				return driver.getFakeFolderFileInfo(files[0]), err

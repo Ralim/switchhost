@@ -17,6 +17,7 @@ func TestStopStart(t *testing.T) {
 	t.Parallel()
 	sett := settings.Settings{
 		NSZCommandLine: "sleep 0.1",
+		QueueLength:    2,
 	}
 	lib := NewLibrary(nil, &sett, nil)
 

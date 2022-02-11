@@ -1,15 +1,20 @@
 package library
 
 import (
+	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/ralim/switchhost/termui"
 	"github.com/ralim/switchhost/utilities"
 	"github.com/rs/zerolog/log"
 )
+
+var ErrCompressionTimeout = errors.New("Compression timed out")
 
 // Compression handles compressing files using the existingnsz tooling
 // It runs a single file compression at a time in the background
@@ -57,13 +62,16 @@ func (lib *Library) compressionWorker() {
 							event := &fileScanningInfo{
 								path:           request.path,
 								fileWasDeleted: true,
+								metadata:       request.metadata,
 							}
 							lib.fileOrganisationRequests <- event
 						}
 						if utilities.Exists(newpath) {
 							//New file exists, put it through the scanner
 							event := &fileScanningInfo{
-								path: newpath,
+								path:        newpath,
+								isInLibrary: !lib.settings.ValidateCompressedFiles,
+								metadata:    request.metadata,
 							}
 							lib.fileMetaScanRequests <- event
 						}
@@ -86,7 +94,21 @@ func (lib *Library) NSZCompressFile(path string) error {
 		}
 	}
 	cleanedParts = append(cleanedParts, path)
-	cmd := exec.Command(cleanedParts[0], cleanedParts[1:]...)
+
+	timeoutValue := lib.settings.CompressionTimeoutMins
+	if timeoutValue == 0 {
+		timeoutValue = 60 // If not set, default to an hour
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutValue)*time.Minute)
+	defer cancel() // The cancel should be deferred so resources are cleaned up
+
+	cmd := exec.CommandContext(ctx, cleanedParts[0], cleanedParts[1:]...)
+
+	if ctx.Err() == context.DeadlineExceeded {
+		log.Error().Msg("Compression timed out and was terminated.")
+		return ErrCompressionTimeout
+	}
+
 	byteData, err := cmd.CombinedOutput()
 	if err != nil {
 		outputLog := string(byteData)

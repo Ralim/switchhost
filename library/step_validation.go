@@ -45,7 +45,7 @@ func (lib *Library) fileValidationWorker() {
 				lib.fileOrganisationRequests <- event
 			} else {
 				if lib.settings.DeleteValidationFails || event.mustCleanupFile {
-					log.Warn().Str("path", requestedPath).Msg("File failed valiation, deleting file")
+					log.Warn().Str("path", requestedPath).Str("embeddedTitle", event.metadata.EmbeddedTitle).Uint("version", uint(event.metadata.Version)).Msg("File failed valiation, deleting file")
 					if err := os.Remove(requestedPath); err != nil {
 						log.Error().Str("path", requestedPath).Msg("File failed valiation, tried deleting file, but it failed")
 					}
