@@ -51,16 +51,20 @@ func (server *Server) StartHTTP() {
 
 }
 
-func (server *Server) httpHandleJSON(respWriter http.ResponseWriter, r *http.Request) {
+func (server *Server) httpHandleJSON(respWriter http.ResponseWriter, req *http.Request) {
+	if req.Method != "GET" {
+		http.Error(respWriter, "Only GET is allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	respWriter.Header().Set("Content-Type", "application/json")
 	//Extract auth header and request it to be sent with all following requests
 	var headers *[]string
-	if v, ok := r.Header["Authorization"]; ok {
+	if v, ok := req.Header["Authorization"]; ok {
 		if len(v) > 0 {
 			headers = &[]string{"Authorization: " + v[0]}
 		}
 	}
-	err := server.generateFileJSONPayload(respWriter, r.Host, false, headers)
+	err := server.generateFileJSONPayload(respWriter, req.Host, false, headers)
 	if err != nil {
 		http.Error(respWriter, "Generating index failed", http.StatusInternalServerError)
 		return
@@ -91,9 +95,12 @@ func (server *Server) parseRangeHeader(rangeHeader string) (int64, int64, error)
 	}
 	return startB, endB, nil
 }
-func (server *Server) httpHandlevFile(respWriter http.ResponseWriter, r *http.Request) {
-
-	reader, name, size, err := server.getFileFromVirtualPath(r.URL.Path)
+func (server *Server) httpHandlevFile(respWriter http.ResponseWriter, req *http.Request) {
+	if req.Method != "GET" {
+		http.Error(respWriter, "Only GET is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	reader, name, size, err := server.getFileFromVirtualPath(req.URL.Path)
 	if err != nil {
 		http.Error(respWriter, "Path not found", http.StatusNotFound)
 		return
@@ -102,7 +109,7 @@ func (server *Server) httpHandlevFile(respWriter http.ResponseWriter, r *http.Re
 	defer reader.Close()
 	respWriter.Header().Add("content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", name))
 	respWriter.Header().Add("Accept-Ranges", "bytes")
-	rangeHeader, ok := r.Header["Range"]
+	rangeHeader, ok := req.Header["Range"]
 	if ok {
 		startb, endb, err := server.parseRangeHeader(rangeHeader[0])
 		if err != nil {
@@ -124,7 +131,11 @@ func (server *Server) httpHandlevFile(respWriter http.ResponseWriter, r *http.Re
 	}
 
 }
-func (server *Server) httpHandleIndex(respWriter http.ResponseWriter, _ *http.Request) {
+func (server *Server) httpHandleIndex(respWriter http.ResponseWriter, req *http.Request) {
+	if req.Method != "GET" {
+		http.Error(respWriter, "Only GET is allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	respWriter.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	err := server.webui.RenderGameListing(respWriter)
 
@@ -162,10 +173,7 @@ func (server *Server) checkAuth(req *http.Request) bool {
 	return match
 }
 func (server *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	if req.Method != "GET" {
-		http.Error(res, "Only GET is allowed", http.StatusMethodNotAllowed)
-		return
-	}
+
 	//Check auth
 	if !server.checkAuth(req) {
 		res.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
@@ -190,6 +198,8 @@ func (server *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		fallthrough
 	case "/":
 		server.httpHandleIndex(res, req)
+	case "config":
+		server.httpHandleConfig(res, req)
 	}
 }
 
@@ -201,4 +211,19 @@ func ShiftPath(pathIn string) (head, tail string) {
 		return pathIn[1:], "/"
 	}
 	return pathIn[1:i], pathIn[i:]
+}
+
+func (server *Server) httpHandleConfig(respWriter http.ResponseWriter, req *http.Request) {
+	//If its a get request, we want to send back the current config, if its a post we update our current config and save
+	defer req.Body.Close()
+	if req.Method == http.MethodPost {
+		log.Info().Msg("Loading settings patch from http request")
+		server.settings.LoadFrom(req.Body)
+		server.settings.Save()
+	} else if req.Method == http.MethodGet {
+		respWriter.Header().Set("Content-Type", "application/json")
+		server.settings.SaveTo(respWriter)
+	} else {
+		http.Error(respWriter, "Bad request type", http.StatusBadRequest)
+	}
 }

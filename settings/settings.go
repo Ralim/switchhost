@@ -129,7 +129,15 @@ func NewSettings(path string) *Settings {
 	log.Info().Msg("Settings loaded, merged and saved")
 	return settings
 }
-
+func (s *Settings) LoadFrom(reader io.Reader) {
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return
+	}
+	if err := json.Unmarshal(data, s); err != nil {
+		log.Warn().Err(err).Msg("Couldn't load settings")
+	}
+}
 func (s *Settings) Load() {
 	//Load existing settings file if possible; if not load do nothing
 	log.Info().Str("path", s.filePath).Msg("Loading settings")
@@ -141,7 +149,13 @@ func (s *Settings) Load() {
 		log.Warn().Err(err).Msg("Couldn't load settings")
 	}
 }
-
+func (s *Settings) SaveTo(wr io.Writer) {
+	data, err := json.MarshalIndent(s, "", "  ")
+	if err != nil {
+		log.Error().Err(err).Msg("Saving settings out failed")
+	}
+	wr.Write(data)
+}
 func (s *Settings) Save() {
 	data, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
