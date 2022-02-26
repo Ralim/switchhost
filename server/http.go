@@ -172,6 +172,23 @@ func (server *Server) checkAuth(req *http.Request) bool {
 
 	return match
 }
+func (server *Server) checkSettingsEdit(req *http.Request) bool {
+	username, password, ok := req.BasicAuth()
+	if !ok {
+		return false
+	}
+
+	match := false
+	for _, user := range server.settings.Users {
+		if subtle.ConstantTimeCompare([]byte(user.Username), []byte(username)) == 1 && subtle.ConstantTimeCompare([]byte(user.Password), []byte(password)) == 1 {
+			if user.AllowSettings {
+				match = true
+			}
+		}
+	}
+
+	return match
+}
 func (server *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	//Check auth
@@ -217,6 +234,11 @@ func (server *Server) httpHandleConfig(respWriter http.ResponseWriter, req *http
 	//If its a get request, we want to send back the current config, if its a post we update our current config and save
 	defer req.Body.Close()
 	if req.Method == http.MethodPost {
+		if !server.checkSettingsEdit(req) {
+			respWriter.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
+			http.Error(respWriter, "Auth required", http.StatusUnauthorized)
+			return
+		}
 		log.Info().Msg("Loading settings patch from http request")
 		server.settings.LoadFrom(req.Body)
 		server.settings.Save()

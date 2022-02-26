@@ -13,11 +13,12 @@ import (
 )
 
 type AuthUser struct {
-	Username    string `json:"username"`    // User username for authentication
-	Password    string `json:"password"`    // User password for authentication
-	AllowFTP    bool   `json:"allowFTP"`    // Can user use the ftp server
-	AllowHTTP   bool   `json:"allowHTTP"`   // Can user use the http server
-	AllowUpload bool   `json:"allowUpload"` // Can user upload new files
+	Username      string `json:"username"`      // User username for authentication
+	Password      string `json:"password"`      // User password for authentication
+	AllowFTP      bool   `json:"allowFTP"`      // Can user use the ftp server
+	AllowHTTP     bool   `json:"allowHTTP"`     // Can user use the http server
+	AllowUpload   bool   `json:"allowUpload"`   // Can user upload new files
+	AllowSettings bool   `json:"allowSettings"` // Can user edit settings
 }
 
 type Settings struct {
