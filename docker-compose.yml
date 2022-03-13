@@ -5,7 +5,10 @@ services:
     tty: true
     build:
       context: .
+    ports:
+      - 8080:8080
+      - 2121:2121
     volumes:
-      - ./:/switchhost/:Z
-      - ./config.json:/switchhost/config.json
-      - ~/.switch/prod.keys:/switchhost/prod.keys
+      - ./:/switchhost/src/:Z
+      - ./config.json:/data/config.json
+      - ~/.switch/prod.keys:/data/prod.keys

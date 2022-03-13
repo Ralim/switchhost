@@ -25,6 +25,16 @@ const (
 
 type ContentType int
 
+const (
+	Meta             ContentType = 0
+	Program          ContentType = 1
+	Data             ContentType = 2
+	Control          ContentType = 3
+	HTMLDocument     ContentType = 4
+	LegalInformation ContentType = 5
+	DeltaFragment    ContentType = 6
+)
+
 // MetaType is the main type of the contents, so base game, updates, dlc etc
 type MetaType int
 
@@ -36,7 +46,7 @@ const (
 )
 
 type Content struct {
-	Type string
+	Type ContentType
 	ID   string
 	Size uint64
 	Hash []byte
@@ -46,7 +56,7 @@ type ContentMetaAttributes struct {
 	TitleId  uint64
 	Version  uint32
 	Type     MetaType
-	Contents map[string]Content
+	Contents map[ContentType]Content
 }
 
 type ContentMeta struct {
@@ -87,7 +97,7 @@ func ParseBinary(pfs0 *partitionfs.PartionFS, data []byte) (*ContentMetaAttribut
 	version := binary.LittleEndian.Uint32(cnmt[0x8:0xC])
 	tableOffset := binary.LittleEndian.Uint16(cnmt[0xE:0x10])
 	contentEntryCount := binary.LittleEndian.Uint16(cnmt[0x10:0x12])
-	contents := map[string]Content{}
+	contents := map[ContentType]Content{}
 	for i := uint16(0); i < contentEntryCount; i++ {
 		position := 0x20 /*size of cnmt header*/ + tableOffset + (i * uint16(0x38))
 		hashData := cnmt[position : position+0x20]
@@ -96,23 +106,7 @@ func ParseBinary(pfs0 *partitionfs.PartionFS, data []byte) (*ContentMetaAttribut
 		// only 6 bytes, so need to add two zero pads
 		sizeData = append([]byte{0, 0}, sizeData...)
 		size := binary.LittleEndian.Uint64(sizeData)
-		contentType := ""
-		switch cnmt[position+0x36] {
-		case 0:
-			contentType = "Meta"
-		case 1:
-			contentType = "Program"
-		case 2:
-			contentType = "Data"
-		case 3:
-			contentType = "Control"
-		case 4:
-			contentType = "HtmlDocument"
-		case 5:
-			contentType = "LegalInformation"
-		case 6:
-			contentType = "DeltaFragment"
-		}
+		contentType := ContentType(cnmt[position+0x36])
 		contents[contentType] = Content{ID: fmt.Sprintf("%x", ncaId), Hash: hashData, Size: size, Type: contentType}
 	}
 	metaType := Unknown

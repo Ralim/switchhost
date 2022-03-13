@@ -47,8 +47,8 @@ type NACP struct {
 	SupportedLanguageFlags uint32
 }
 
-func ExtractNACP(keystore *keystore.Keystore, cnmt *cnmt.ContentMetaAttributes, file io.ReaderAt, securePartition *partitionfs.PartionFS, securePartitionOffset uint64) (*NACP, error) {
-	if control, ok := cnmt.Contents["Control"]; ok {
+func ExtractNACP(keystore *keystore.Keystore, cnmto *cnmt.ContentMetaAttributes, file io.ReaderAt, securePartition *partitionfs.PartionFS, securePartitionOffset uint64) (*NACP, error) {
+	if control, ok := cnmto.Contents[cnmt.Control]; ok {
 		controlNca := securePartition.GetByName(control.ID)
 		if controlNca == nil {
 			return nil, fmt.Errorf("unable to find control.nacp by id %v", control.ID)
