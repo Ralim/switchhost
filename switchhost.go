@@ -39,8 +39,8 @@ func (m *SwitchHost) Run() error {
 		settingsPath = m.ConfigFilePath
 	}
 	m.settings = settings.NewSettings(settingsPath)
+	m.ui = termui.NewTermUI(m.NoCUI)
 	if !m.NoCUI {
-		m.ui = termui.NewTermUI()
 		m.settings.SetupLogging(tview.ANSIWriter(m.ui.LogsView))
 		go func() {
 			m.ui.Run()

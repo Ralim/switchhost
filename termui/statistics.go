@@ -22,15 +22,16 @@ func (s Statistics) Redraw() {
 	newTitles := fmt.Sprintf("%d", s.TotalTitles)
 	newUpdates := fmt.Sprintf("%d", s.TotalUpdates)
 	newDLC := fmt.Sprintf("%d", s.TotalDLC)
-	s.app.QueueUpdateDraw(func() {
-		s.table.SetCellSimple(0, 0, "Total Titles")
-		s.table.SetCellSimple(0, 1, newTitles)
-		s.table.SetCellSimple(1, 0, "Total Updates")
-		s.table.SetCellSimple(1, 1, newUpdates)
-		s.table.SetCellSimple(2, 0, "Total DLC")
-		s.table.SetCellSimple(2, 1, newDLC)
-	})
-
+	if s.app != nil {
+		s.app.QueueUpdateDraw(func() {
+			s.table.SetCellSimple(0, 0, "Total Titles")
+			s.table.SetCellSimple(0, 1, newTitles)
+			s.table.SetCellSimple(1, 0, "Total Updates")
+			s.table.SetCellSimple(1, 1, newUpdates)
+			s.table.SetCellSimple(2, 0, "Total DLC")
+			s.table.SetCellSimple(2, 1, newDLC)
+		})
+	}
 }
 
 func newStatistics(app *tview.Application) *Statistics {

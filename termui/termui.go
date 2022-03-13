@@ -22,14 +22,17 @@ type TermUI struct {
 	tasks       []*TaskState
 }
 
-func NewTermUI() *TermUI {
+func NewTermUI(noUI bool) *TermUI {
 
 	t := &TermUI{
 		tasks:   []*TaskState{},
-		app:     tview.NewApplication(),
 		running: false,
 	}
 	t.Statistics = newStatistics(t.app)
+	if noUI {
+		return t
+	}
+	t.app = tview.NewApplication()
 
 	//Logs stream
 
@@ -77,8 +80,8 @@ func (t *TermUI) Run() {
 	_ = t.app.Run()
 
 }
+
 func (t *TermUI) Stop() {
 	t.running = false
 	t.app.Stop()
-
 }

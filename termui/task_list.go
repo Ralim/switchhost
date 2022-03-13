@@ -9,9 +9,11 @@ func (t *TermUI) RegisterTask(taskName string) *TaskState {
 	//Todo, support 2xN or 4xN ColsxRows
 	row := index
 	colindex := 0
-	t.app.QueueUpdateDraw(func() {
-		t.statusTable.SetCellSimple(row, colindex, taskName)
-	})
+	if t.app != nil {
+		t.app.QueueUpdateDraw(func() {
+			t.statusTable.SetCellSimple(row, colindex, taskName)
+		})
+	}
 	state := &TaskState{
 		name:        taskName,
 		statusTable: t.statusTable,

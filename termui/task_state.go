@@ -1,6 +1,10 @@
 package termui
 
-import "github.com/rivo/tview"
+import (
+	"github.com/rivo/tview"
+
+	"github.com/rs/zerolog/log"
+)
 
 type TaskState struct {
 	name        string
@@ -13,11 +17,15 @@ type TaskState struct {
 }
 
 func (t *TaskState) UpdateStatus(state string) {
-	t.lastStatus = state
-	if t.parent.running {
-		t.parent.app.QueueUpdateDraw(func() {
-			t.statusTable.SetCellSimple(t.row, t.col, state)
-		})
+	if t.lastStatus != state {
+		t.lastStatus = state
+		if t.parent.running {
+			t.parent.app.QueueUpdateDraw(func() {
+				t.statusTable.SetCellSimple(t.row, t.col, state)
+			})
+		} else {
+			log.Info().Str("task", t.name).Str("state", t.lastStatus).Msg("New State")
+		}
 	}
 }
 
