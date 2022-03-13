@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/ralim/switchhost/library"
 	"github.com/ralim/switchhost/server"
@@ -61,9 +62,18 @@ func main() {
 
 func tryAndLoadKeys(lib *library.Library) {
 	paths := []string{"."}
+	//Append user home folder if it exists
 	if userHomeDir, err := os.UserHomeDir(); err == nil {
 		paths = append(paths, path.Join(userHomeDir, ".switch"))
 	}
+	//Append executable folder if it exists
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	exPath := filepath.Dir(ex)
+	paths = append(paths, exPath)
+	fmt.Println(paths)
 
 	for _, path := range paths {
 		if ok := loadKeys(path, lib); ok {
