@@ -100,6 +100,10 @@ func (m *SwitchHost) loadTitlesDB() {
 
 }
 func (m *SwitchHost) tryAndLoadKeys() {
+	//First try cli arg path if we can
+	if ok := loadKeys(m.KeysFilePath, m.lib); ok {
+		return // Done loading
+	}
 	paths := []string{"."}
 	//Append user home folder if it exists
 	if userHomeDir, err := os.UserHomeDir(); err == nil {
@@ -113,20 +117,20 @@ func (m *SwitchHost) tryAndLoadKeys() {
 	exPath := filepath.Dir(ex)
 	paths = append(paths, exPath)
 
-	for _, path := range paths {
-		if ok := loadKeys(path, m.lib); ok {
+	for _, folder := range paths {
+		filePath := path.Join(folder, "prod.keys")
+		if ok := loadKeys(filePath, m.lib); ok {
 			return // Done loading
 		}
 	}
 	log.Warn().Msg("No keys could be loaded, functionality will be limited")
 }
 
-func loadKeys(folder string, lib *library.Library) bool {
-	path := path.Join(folder, "prod.keys")
-	if _, err := os.Stat(path); err == nil {
-		log.Info().Str("path", path).Msg("Loading keys...")
+func loadKeys(filePath string, lib *library.Library) bool {
+	if _, err := os.Stat(filePath); err == nil {
+		log.Info().Str("path", filePath).Msg("Loading keys...")
 
-		file, err := os.Open(path)
+		file, err := os.Open(filePath)
 		if err != nil {
 			return false
 		}

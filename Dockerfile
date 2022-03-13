@@ -21,4 +21,4 @@ COPY --from=build /bin/switchhost ./switchhost
 # Run healthcheck against the web ui
 HEALTHCHECK CMD curl --fail http://localhost:8080 || exit 1   
 
-ENTRYPOINT ["/switchhost/switchhost", "/data/config.json"]
+ENTRYPOINT ["/switchhost/switchhost", "--config","/data/config.json","--keys","/data/prod.keys","--noCUI"]
