@@ -12,6 +12,7 @@ import (
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/termui"
 	"github.com/ralim/switchhost/titledb"
+	"github.com/ralim/switchhost/utilities"
 	"github.com/rivo/tview"
 	"github.com/rs/zerolog/log"
 )
@@ -87,6 +88,28 @@ func (m *SwitchHost) Run() error {
 	return nil
 }
 
+func (m *SwitchHost) checkKeys(pathUsed string) {
+	//So this is a bit of a hack around because nsz.py is inflexible in the prod.keys file location
+	//So we check, if we have been told to load from a not ~/.switch/ location, and the dest file does not exist, we copy it there for nsz.py
+	if userHomeDir, err := os.UserHomeDir(); err == nil {
+		homeFileFolderPath := path.Join(userHomeDir, ".switch")
+		err := os.MkdirAll(homeFileFolderPath, os.ModePerm)
+		if err == nil {
+			homeFilePath := path.Join(homeFileFolderPath, "prod.keys")
+
+			if homeFilePath != pathUsed && !utilities.Exists(homeFilePath) {
+				log.Info().Str("pathUsed", pathUsed).Msg("Path used for keys does not equal the one nsz wants, so going to try and copy it there")
+				err := utilities.CopyFile(pathUsed, homeFilePath)
+				if err != nil {
+					log.Warn().Err(err).Msg("Failed to copy the prod.keys file, nsz.py may not work")
+				}
+			}
+		} else {
+			log.Warn().Err(err).Msg("Failed to copy the prod.keys file,as could not make folder; nsz.py may not work")
+		}
+	}
+}
+
 func (m *SwitchHost) loadTitlesDB() {
 
 	if m.ui != nil {
@@ -101,7 +124,7 @@ func (m *SwitchHost) loadTitlesDB() {
 }
 func (m *SwitchHost) tryAndLoadKeys() {
 	//First try cli arg path if we can
-	if ok := loadKeys(m.KeysFilePath, m.lib); ok {
+	if ok := m.loadKeys(m.KeysFilePath, m.lib); ok {
 		return // Done loading
 	}
 	paths := []string{"."}
@@ -119,14 +142,14 @@ func (m *SwitchHost) tryAndLoadKeys() {
 
 	for _, folder := range paths {
 		filePath := path.Join(folder, "prod.keys")
-		if ok := loadKeys(filePath, m.lib); ok {
+		if ok := m.loadKeys(filePath, m.lib); ok {
 			return // Done loading
 		}
 	}
 	log.Warn().Msg("No keys could be loaded, functionality will be limited")
 }
 
-func loadKeys(filePath string, lib *library.Library) bool {
+func (m *SwitchHost) loadKeys(filePath string, lib *library.Library) bool {
 	if _, err := os.Stat(filePath); err == nil {
 		log.Info().Str("path", filePath).Msg("Loading keys...")
 
@@ -139,6 +162,7 @@ func loadKeys(filePath string, lib *library.Library) bool {
 			log.Info().Err(err).Msg("Could not load keys")
 			return false
 		}
+		m.checkKeys(filePath)
 		return true
 	}
 	return false
