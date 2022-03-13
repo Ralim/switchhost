@@ -159,6 +159,7 @@ func (s *Settings) SaveTo(wr io.Writer) error {
 	if err != nil {
 		return err
 	}
+	return nil
 }
 func (s *Settings) Save() {
 	data, err := json.MarshalIndent(s, "", "  ")
