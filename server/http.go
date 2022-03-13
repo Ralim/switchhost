@@ -250,7 +250,10 @@ func (server *Server) httpHandleConfig(respWriter http.ResponseWriter, req *http
 		server.settings.Save()
 	} else if req.Method == http.MethodGet {
 		respWriter.Header().Set("Content-Type", "application/json")
-		server.settings.SaveTo(respWriter)
+		err := server.settings.SaveTo(respWriter)
+		if err != nil {
+			log.Error().Err(err).Msg("Saving settings out failed")
+		}
 	} else {
 		http.Error(respWriter, "Bad request type", http.StatusBadRequest)
 	}

@@ -150,12 +150,16 @@ func (s *Settings) Load() {
 		log.Warn().Err(err).Msg("Couldn't load settings")
 	}
 }
-func (s *Settings) SaveTo(wr io.Writer) {
+func (s *Settings) SaveTo(wr io.Writer) error {
 	data, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
-		log.Error().Err(err).Msg("Saving settings out failed")
+		return err
 	}
-	wr.Write(data)
+	_, err = wr.Write(data)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 func (s *Settings) Save() {
 	data, err := json.MarshalIndent(s, "", "  ")
