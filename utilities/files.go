@@ -57,7 +57,7 @@ func CopyFile(src, dst string) (err error) {
 		}
 	}()
 
-	buffer := make([]byte, 1024*1024*4)
+	buffer := make([]byte, 1024*1024*32)
 	_, err = io.CopyBuffer(out, in, buffer)
 	if err != nil {
 		return
