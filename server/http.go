@@ -190,15 +190,19 @@ func (server *Server) checkSettingsEdit(req *http.Request) bool {
 	return match
 }
 func (server *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-
+	var head string
+	head, req.URL.Path = ShiftPath(req.URL.Path)
+	//Healthcheck does not require auth so chcek it first
+	if head == "healthcheck" {
+		res.WriteHeader(http.StatusOK)
+		return
+	}
 	//Check auth
 	if !server.checkAuth(req) {
 		res.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
 		http.Error(res, "Auth required", http.StatusUnauthorized)
 		return
 	}
-	var head string
-	head, req.URL.Path = ShiftPath(req.URL.Path)
 
 	switch head {
 	case "vfile":
@@ -217,6 +221,8 @@ func (server *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		server.httpHandleIndex(res, req)
 	case "config":
 		server.httpHandleConfig(res, req)
+	default:
+		res.WriteHeader(http.StatusNotFound)
 	}
 }
 

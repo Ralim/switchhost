@@ -1,3 +1,3 @@
 #! /bin/sh
 
-docker-compose run --rm switchhost
+docker-compose run --rm --service-ports switchhost

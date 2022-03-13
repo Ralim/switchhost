@@ -19,6 +19,6 @@ RUN  pip3 install --upgrade nsz && apt-get update && apt-get install -y curl && 
 COPY --from=build /bin/switchhost ./switchhost
 
 # Run healthcheck against the web ui
-HEALTHCHECK CMD curl --fail http://localhost:8080 || exit 1   
+HEALTHCHECK CMD curl --fail http://localhost:8080/healthcheck || exit 1   
 
 ENTRYPOINT ["/switchhost/switchhost", "--config","/data/config.json","--keys","/data/prod.keys","--noCUI"]
