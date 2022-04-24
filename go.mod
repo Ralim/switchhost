@@ -1,6 +1,6 @@
 module github.com/ralim/switchhost
 
-go 1.17
+go 1.18
 
 require (
 	github.com/jaffee/commandeer v0.5.0

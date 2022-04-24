@@ -53,12 +53,12 @@ func TestAuthPutFile(t *testing.T) {
 
 func TestAuthCheckPasswd(t *testing.T) {
 
-	temp_folder, err := os.MkdirTemp("", "unit_test")
+	tempFolder, err := os.MkdirTemp("", "unit_test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(temp_folder)
-	setting := settings.NewSettings(path.Join(temp_folder, "settings.json"))
+	defer os.RemoveAll(tempFolder)
+	setting := settings.NewSettings(path.Join(tempFolder, "settings.json"))
 	setting.UploadingAllowed = false
 	driver := NewDriver(nil, setting)
 	ctx := &ftpserver.Context{

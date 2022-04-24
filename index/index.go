@@ -106,7 +106,7 @@ func (idx *Index) AddFileRecord(file *FileOnDiskRecord) {
 		oldValue = TitleOnDiskCollection{}
 	}
 	if baseTitle == file.TitleID {
-		//Check if we are attempting an overwrite
+		//Check if we are attempting overwriting an existing entry
 		if oldValue.BaseTitle == nil {
 			idx.statistics.TotalTitles++
 		}
@@ -227,10 +227,11 @@ func (idx *Index) handleFileCollision(existing, proposed *FileOnDiskRecord) *Fil
 	return new
 }
 
-func (idx *Index) GetFilesForTitleID(titleid uint64) (TitleOnDiskCollection, bool) {
+func (idx *Index) GetFilesForTitleID(titleID uint64) (TitleOnDiskCollection, bool) {
 	idx.RWMutex.RLocker().Lock()
 	defer idx.RWMutex.RLocker().Unlock()
-	val, ok := idx.filesKnown[titleid]
+	baseTitle := titleID & 0xFFFFFFFFFFFFE000
+	val, ok := idx.filesKnown[baseTitle]
 	return val, ok
 }
 func (idx *Index) GetFileRecord(titleID uint64, version uint32) (*FileOnDiskRecord, bool) {
