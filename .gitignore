@@ -1,3 +1,4 @@
 switchhost
 *.json
 *.etag
+.idea/

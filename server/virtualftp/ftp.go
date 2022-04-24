@@ -88,12 +88,12 @@ func (driver *FTPDriver) dirPathToTitleID(path string) (uint64, error) {
 		titleID, err := strconv.ParseUint(match[1], 10, 64)
 		return titleID, err
 	}
-	return 0, errors.New("couldnt parse")
+	return 0, errors.New("couldn't parse")
 }
 
 func (driver *FTPDriver) getFakeFolderFileInfo(titleInfo index.FileOnDiskRecord) os.FileInfo {
-	virtualpath := fmt.Sprintf("%s [%d]", utilities.CleanName(titleInfo.Name), titleInfo.TitleID)
-	info := NewFakeFolder(virtualpath)
+	virtualPath := fmt.Sprintf("%s [%d]", utilities.CleanName(titleInfo.Name), titleInfo.TitleID)
+	info := NewFakeFolder(virtualPath)
 	return &info
 }
 
@@ -113,12 +113,12 @@ func (driver *FTPDriver) ListDir(ctx *ftpserver.Context, path string, callback f
 		if titleID, err := driver.dirPathToTitleID(path); err == nil {
 			val, ok := driver.library.FileIndex.GetFilesForTitleID(titleID)
 			if ok {
-				//Now need to yield os info's for all of the underlying files
+				//Now need to yield os info's for all the underlying files
 				for _, file := range val.GetFiles() {
 					info, err := os.Stat(file.Path)
 					if err == nil {
-						fakefile := NewFakeFile(driver.getfakepathForRealFile(file), info)
-						_ = callback(&fakefile)
+						fakeFile := NewFakeFile(driver.getFakePathForRealFile(file), info)
+						_ = callback(&fakeFile)
 					}
 				}
 			}
@@ -126,7 +126,7 @@ func (driver *FTPDriver) ListDir(ctx *ftpserver.Context, path string, callback f
 	}
 	return nil
 }
-func (driver *FTPDriver) getfakepathForRealFile(file index.FileOnDiskRecord) string {
+func (driver *FTPDriver) getFakePathForRealFile(file index.FileOnDiskRecord) string {
 	ext := path.Ext(file.Path)
 	fileTitle := fmt.Sprintf("%s - [%d][%d]%s", file.Name, file.TitleID, file.Version, ext)
 	return path.Join(fileTitle)
