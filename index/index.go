@@ -106,7 +106,7 @@ func (idx *Index) AddFileRecord(file *FileOnDiskRecord) {
 		oldValue = TitleOnDiskCollection{}
 	}
 	if baseTitle == file.TitleID {
-		//Check if we are attempting an overwrite
+		//Check if we are attempting overwriting an existing entry
 		if oldValue.BaseTitle == nil {
 			idx.statistics.TotalTitles++
 		}
