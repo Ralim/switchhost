@@ -142,3 +142,58 @@ func TestIndex_AddFileRecord(t *testing.T) {
 		t.Error("Should have the DLC")
 	}
 }
+
+func TestIndex_AddFileRecord_DLCOnly(t *testing.T) {
+	t.Parallel()
+	idx := NewIndex(nil, nil)
+	files := []FileOnDiskRecord{
+		{
+			Path:    "",
+			TitleID: 72170844075864065,
+			Version: 0,
+			Name:    "",
+			Size:    1,
+		},
+		{
+			Path:    "",
+			TitleID: 72170844075864066,
+			Version: 0,
+			Name:    "",
+			Size:    1,
+		},
+		{
+			Path:    "",
+			TitleID: 72170844075864067,
+			Version: 0,
+			Name:    "",
+			Size:    1,
+		},
+		{
+			Path:    "",
+			TitleID: 72170844075864068,
+			Version: 0,
+			Name:    "",
+			Size:    1,
+		},
+		{
+			Path:    "",
+			TitleID: 72170844075864069,
+			Version: 0,
+			Name:    "",
+			Size:    1,
+		},
+	}
+	for _, file := range files {
+		idx.AddFileRecord(&file)
+	}
+	if len(idx.filesKnown) != 1 {
+		t.Error("Should store all dlc under one key")
+	}
+	record, ok := idx.GetFilesForTitleID(72170844075864069)
+	if !ok {
+		t.Error("Should allow file lookup from any id")
+	}
+	if len(record.DLC) != 5 {
+		t.Error("Should store all DLC")
+	}
+}
