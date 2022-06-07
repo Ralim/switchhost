@@ -36,6 +36,7 @@ func CreateVirtualFTP(lib *library.Library, settings *settings.Settings) *FTPSer
 		Auth:           driver,
 		Perm:           perm,
 		WelcomeMessage: settings.ServerMOTD,
+		PassivePorts:   settings.FTPPassivePorts,
 	}
 	// start ftp server
 	ftpServer, err := ftpserver.NewServer(opt)

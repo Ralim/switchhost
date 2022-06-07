@@ -39,13 +39,14 @@ type Settings struct {
 	PreferCompressed bool `json:"preferCompressed"` // Prefer compressed form of files on duplicate
 
 	//Serving files
-	HTTPPort      int        `json:"httpPort"`      // Port used for HTTP
-	FTPPort       int        `json:"ftpPort"`       // Port used for FTP
-	AllowAnonFTP  bool       `json:"allowAnonFTP"`  // Allow anon (open to public) FTP
-	AllowAnonHTTP bool       `json:"allowAnonHTTP"` // Allow anon (open to public) HTTP
-	Users         []AuthUser `json:"users"`         // User accounts
-	JSONLocations []string   `json:"jsonLocations"` // Extra locations to add to locations field in json for backup instances
-	ServerMOTD    string     `json:"serverMOTD"`    // Server title used for public facing info
+	HTTPPort        int        `json:"httpPort"`        // Port used for HTTP
+	FTPPort         int        `json:"ftpPort"`         // Port used for FTP
+	FTPPassivePorts string     `json:"FTPPassivePorts"` // Passive port range for FTP
+	AllowAnonFTP    bool       `json:"allowAnonFTP"`    // Allow anon (open to public) FTP
+	AllowAnonHTTP   bool       `json:"allowAnonHTTP"`   // Allow anon (open to public) HTTP
+	Users           []AuthUser `json:"users"`           // User accounts
+	JSONLocations   []string   `json:"jsonLocations"`   // Extra locations to add to locations field in json for backup instances
+	ServerMOTD      string     `json:"serverMOTD"`      // Server title used for public facing info
 
 	// Incoming
 	UploadingAllowed bool   `json:"uploadingAllowed"` // Can FTP be used to push new files
@@ -86,6 +87,7 @@ func NewSettings(path string) *Settings {
 		CleanupEmptyFolders:    true,                                                                 // Relatively safe
 		HTTPPort:               8080,                                                                 // Ports
 		FTPPort:                2121,                                                                 // Ports
+		FTPPassivePorts:        "2130-2140",                                                          // FTP Passive ports
 		ServerMOTD:             "Switchroot",                                                         // MOTD to include in the json file
 		LogLevel:               1,                                                                    // Info
 		LogFilePath:            "",                                                                   // No log file
