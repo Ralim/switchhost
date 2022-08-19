@@ -3,7 +3,6 @@ package settings
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	stdlog "log"
 	"os"
 	"strings"
@@ -128,14 +127,14 @@ func NewSettings(path string) *Settings {
 	// Load the settings file if it exsts, which will override the defaults above if specified
 	settings.Load()
 	// Clean up paths
-	settings.cleanpaths()
+	settings.cleanPaths()
 	// Save to preserve if we have added anything to the file, and drop no-longer used settings for clarity
 	settings.Save()
 	log.Info().Msg("Settings loaded, merged and saved")
 	return settings
 }
 func (s *Settings) LoadFrom(reader io.Reader) {
-	data, err := ioutil.ReadAll(reader)
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return
 	}
@@ -146,7 +145,7 @@ func (s *Settings) LoadFrom(reader io.Reader) {
 func (s *Settings) Load() {
 	//Load existing settings file if possible; if not load do nothing
 	log.Info().Str("path", s.filePath).Msg("Loading settings")
-	data, err := ioutil.ReadFile(s.filePath)
+	data, err := os.ReadFile(s.filePath)
 	if err != nil {
 		return
 	}
@@ -171,7 +170,7 @@ func (s *Settings) Save() {
 		log.Warn().Err(err).Msg("Couldn't save settings - JSONification")
 		return
 	}
-	if err = ioutil.WriteFile(s.filePath, data, 0666); err != nil {
+	if err = os.WriteFile(s.filePath, data, 0666); err != nil {
 		log.Warn().Err(err).Msg("Couldn't save settings - writing file")
 	}
 }
@@ -216,7 +215,7 @@ func (s *Settings) SetupLogging(logoutput io.Writer) {
 	}
 }
 
-func (s *Settings) cleanpaths() {
+func (s *Settings) cleanPaths() {
 	//Since users may make mistakes and start or end the paths with a string, clean all of these up
 	s.TempFilesFolder = strings.TrimSpace(s.TempFilesFolder)
 	s.StorageFolder = strings.TrimSpace(s.StorageFolder)
