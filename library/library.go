@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"sync"
 
 	"github.com/ralim/switchhost/formats"
@@ -95,7 +94,7 @@ func (lib *Library) LoadKeys(keysDBReader io.Reader) error {
 	return nil
 }
 
-//Start spawns internal workers and performs any non-trivial setup time tasks
+// Start spawns internal workers and performs any non-trivial setup time tasks
 func (lib *Library) Start() {
 	//Check output folder exists if sorting enabled
 	if lib.settings.EnableSorting {
@@ -112,7 +111,7 @@ func (lib *Library) Start() {
 	// Internal states of the chain (except organisation) run multiple workers to utilise more cores
 	// Process up to CPU count steps at once for each type
 	// This will overschedule the tasks to run usually, but we are _super_ IO blocked so its usually OK
-	for i := 0; i < runtime.NumCPU(); i++ {
+	for i := 0; i < lib.settings.GetCPUCount(); i++ {
 		lib.waitgroup.Add(1)
 		go lib.fileMetadataWorker()
 

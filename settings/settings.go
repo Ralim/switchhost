@@ -5,6 +5,7 @@ import (
 	"io"
 	stdlog "log"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -49,9 +50,9 @@ type Settings struct {
 	ServerMOTD      string     `json:"serverMOTD"`    // Server title used for public facing info
 
 	// Incoming
-	UploadingAllowed bool   `json:"uploadingAllowed"` // Can FTP be used to push new files
-	TempFilesFolder  string `json:"tempFilesFolder"`  // Temporary file storage location for FTP uploads
-
+	UploadingAllowed bool   `json:"uploadingAllowed"`  // Can FTP be used to push new files
+	TempFilesFolder  string `json:"tempFilesFolder"`   // Temporary file storage location for FTP uploads
+	OpTheadCounts    int    `json:"workerThreadCount"` // Optional thread count override
 	// File validation
 	ValidateLibrary         bool `json:"validateLibrary"`       // If all files found in the main library location are validated for checksums
 	ValidateNewFiles        bool `json:"validateUploads"`       // If uploads must validate before being added, even if above toggles are off
@@ -77,6 +78,7 @@ type Settings struct {
 func NewSettings(path string) *Settings {
 
 	settings := &Settings{
+		OpTheadCounts:          -1, // No thread count override
 		filePath:               path,
 		PreferredLangOrder:     []int{1, 0},
 		FoldersToScan:          []string{"./incoming_files"},                                         // Search locations
@@ -224,4 +226,11 @@ func (s *Settings) cleanPaths() {
 		s.FoldersToScan[i] = strings.TrimSpace(v)
 	}
 
+}
+
+func (s *Settings) GetCPUCount() int {
+	if s.OpTheadCounts > 0 {
+		return s.OpTheadCounts
+	}
+	return runtime.NumCPU()
 }
