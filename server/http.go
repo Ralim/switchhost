@@ -228,6 +228,8 @@ func (server *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	switch head {
 	case "vfile":
 		server.httpHandlevFile(res, req)
+	case "vIndex":
+		server.httpHandleVirtualIndex(res, req)
 	case "index.json":
 		server.httpHandleJSON(res, req)
 	case "titledb.json":
