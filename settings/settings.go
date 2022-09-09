@@ -26,6 +26,7 @@ type Settings struct {
 
 	PreferredLangOrder []int    `json:"preferredLanguageOrder"` // List of language id's to use when parsing CNMT data area
 	TitlesDBURLs       []string `json:"titlesDbUrls"`           // URL's to use when loading the local titledb
+	VersionsDBURL      string   `json:"versionsDBURL"`          // Versions JSON for updates
 	FoldersToScan      []string `json:"sourceFolders"`          // Folders to look for new files in
 	CacheFolder        string   `json:"cacheFolder"`            // Folder to cache downloads and other temp files, if preserved will avoid re-downloads. Can be /tmp/ though
 	// Organisation
@@ -125,6 +126,7 @@ func NewSettings(path string) *Settings {
 			"https://raw.githubusercontent.com/blawar/titledb/master/US.en.json",
 			"https://raw.githubusercontent.com/blawar/titledb/master/AU.en.json",
 		},
+		VersionsDBURL: "https://raw.githubusercontent.com/blawar/titledb/master/versions.json",
 	}
 	// Load the settings file if it exsts, which will override the defaults above if specified
 	settings.Load()
