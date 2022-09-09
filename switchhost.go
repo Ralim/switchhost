@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/ralim/switchhost/versionsdb"
 	"os"
 	"os/signal"
 	"path"
@@ -62,6 +63,7 @@ func (m *SwitchHost) Run() error {
 		}()
 	}
 
+	m.loadVersionInfo()
 	// Download TitlesDB
 	m.loadTitlesDB()
 
@@ -121,6 +123,17 @@ func (m *SwitchHost) loadTitlesDB() {
 	m.titleDB = titledb.CreateTitlesDB(m.settings)
 	m.titleDB.UpdateTitlesDB()
 
+}
+
+func (m *SwitchHost) loadVersionInfo() {
+
+	if m.ui != nil {
+		versionInfo := m.ui.RegisterTask("Version Info")
+		versionInfo.UpdateStatus("Downloading")
+		defer versionInfo.UpdateStatus("Done")
+	}
+	versionInfo := versionsdb.NewVersionDBFromURL(m.settings.VersionsDBURL, m.settings.CacheFolder)
+	versionInfo.LookupLatestVersion(0000)
 }
 func (m *SwitchHost) tryAndLoadKeys() {
 	//First try cli arg path if we can
