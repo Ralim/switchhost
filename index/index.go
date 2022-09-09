@@ -40,7 +40,7 @@ func (idx *Index) GetStats() termui.Statistics {
 	return idx.statistics
 }
 
-//Lists all tracked files
+// Lists all tracked files
 func (idx *Index) ListFiles() []FileOnDiskRecord {
 	idx.RWMutex.RLocker().Lock()
 	defer idx.RWMutex.RLocker().Unlock()
@@ -59,7 +59,7 @@ func (idx *Index) ListFiles() []FileOnDiskRecord {
 	return values
 }
 
-//Will only lists title files, of if title is missing the update, if thats missing, the dlc
+// Will only lists title files, of if title is missing the update, if thats missing, the dlc
 func (idx *Index) ListTitleFiles() []FileOnDiskRecord {
 	idx.RWMutex.RLocker().Lock()
 	defer idx.RWMutex.RLocker().Unlock()
@@ -234,6 +234,25 @@ func (idx *Index) GetFilesForTitleID(titleID uint64) (TitleOnDiskCollection, boo
 	val, ok := idx.filesKnown[baseTitle]
 	return val, ok
 }
+func (idx *Index) GetAllRecordsForTitle(titleID uint64) []FileOnDiskRecord {
+	idx.RWMutex.RLocker().Lock()
+	defer idx.RWMutex.RLocker().Unlock()
+	resp := make([]FileOnDiskRecord, 0, 3)
+	baseTitle := titleID & 0xFFFFFFFFFFFFE000
+	record, ok := idx.filesKnown[baseTitle]
+	if !ok {
+		return resp
+	}
+	if record.BaseTitle != nil {
+		resp = append(resp, *record.BaseTitle)
+	}
+	if record.Update != nil {
+		resp = append(resp, *record.Update)
+	}
+	resp = append(resp, record.DLC...)
+	return resp
+}
+
 func (idx *Index) GetFileRecord(titleID uint64, version uint32) (*FileOnDiskRecord, bool) {
 	idx.RWMutex.RLocker().Lock()
 	defer idx.RWMutex.RLocker().Unlock()
@@ -264,6 +283,14 @@ func (idx *Index) GetFileRecord(titleID uint64, version uint32) (*FileOnDiskReco
 
 }
 
+func (idx *Index) GetTitleRecords(titleID uint64) (TitleOnDiskCollection, bool) {
+	idx.RWMutex.RLocker().Lock()
+	defer idx.RWMutex.RLocker().Unlock()
+	baseTitle := titleID & 0xFFFFFFFFFFFFE000
+	record, ok := idx.filesKnown[baseTitle]
+	return record, ok
+
+}
 func (idx *Index) RemoveFile(path string) {
 	idx.RWMutex.Lock()
 	defer idx.RWMutex.Unlock()

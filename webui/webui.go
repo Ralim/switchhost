@@ -12,6 +12,9 @@ import (
 //go:embed templates/index.html
 var titlePageTemplate string
 
+//go:embed templates/detail.html
+var detailPageTemplate string
+
 //go:embed templates/skeleton.min.css
 var SkeletonCss []byte
 

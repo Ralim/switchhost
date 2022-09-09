@@ -3,7 +3,6 @@ package utilities
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -18,7 +17,7 @@ func DownloadFileWithVersioning(fileURL, folder string) (string, error) {
 	outputFile := path.Join(folder, fileName)
 	outputETagFile := outputFile + ".etag"
 	existingETag := ""
-	if content, err := ioutil.ReadFile(outputETagFile); err == nil {
+	if content, err := os.ReadFile(outputETagFile); err == nil {
 		existingETag = string(content)
 	}
 

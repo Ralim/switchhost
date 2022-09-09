@@ -1,7 +1,6 @@
 package titledb
 
 import (
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -46,7 +45,7 @@ func TestInjestTitleDBFile(t *testing.T) {
 		}
 	  }
 `
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "titlesdb-test1-")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "titlesdb-test1-")
 	if err != nil {
 		t.Fatal("Cannot create temporary file", err)
 	}
@@ -124,7 +123,7 @@ func TestInjestTitleDBFileUnhappy(t *testing.T) {
 
 	//bad json
 	notJsonString := `{NotJson}`
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "titlesdb-test1-")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "titlesdb-test1-")
 	if err != nil {
 		t.Fatal("Cannot create temporary file", err)
 	}
@@ -144,7 +143,7 @@ func TestInjestTitleDBFileUnhappy(t *testing.T) {
 	if err == nil {
 		t.Error("Should fail with error on bad json")
 	}
-	tmpFile2, err := ioutil.TempFile(os.TempDir(), "titlesdb-test1-")
+	tmpFile2, err := os.CreateTemp(os.TempDir(), "titlesdb-test1-")
 	if err != nil {
 		t.Fatal("Cannot create temporary file", err)
 	}

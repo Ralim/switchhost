@@ -44,13 +44,13 @@ func (web *WebUI) renderGameIconCard(titleID uint64) string {
 	if titleDeets.IconURL != "" {
 
 		template := `<div class="three columns">
-<a href="%s" class="card">
+<a href="%s%d" class="card">
   <h6>%s</h6>
   <img class="u-max-full-width" src="%s" />
 </a>
 </div>
 `
-		return fmt.Sprintf(template, "#", titleDeets.Name, titleDeets.IconURL)
+		return fmt.Sprintf(template, "/info/", titleID, titleDeets.Name, titleDeets.IconURL)
 
 	} else {
 		// Todo, non image card

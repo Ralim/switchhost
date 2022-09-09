@@ -1,7 +1,6 @@
 package settings_test
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -11,7 +10,8 @@ import (
 
 func TestNewSettings(t *testing.T) {
 	//Test that settings will init
-	tempFile, err := ioutil.TempFile("", "settings_test_*")
+
+	tempFile, err := os.CreateTemp("", "settings_test_*")
 	if err != nil {
 		t.Error(err)
 	}
@@ -25,7 +25,7 @@ func TestNewSettings(t *testing.T) {
 
 func TestLoadFrom(t *testing.T) {
 	//Test that settings will init
-	tempFile, err := ioutil.TempFile("", "settings_test_*")
+	tempFile, err := os.CreateTemp("", "settings_test_*")
 	if err != nil {
 		t.Error(err)
 	}

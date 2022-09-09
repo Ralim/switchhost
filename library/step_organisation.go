@@ -182,7 +182,7 @@ func (lib *Library) determineIdealFilePath(info *formats.FileInfo, sourceFile st
 			//Try and load the file name directly
 			gameTitle = info.EmbeddedTitle
 			if len(gameTitle) == 0 {
-				//Check if its a DLC and we can ignore it
+				//Check if it's a DLC and we can ignore it
 				return "", fmt.Errorf("unable to determine path as title lookup failed with - >%w< and the embedded Title was empty", err)
 			}
 		}
