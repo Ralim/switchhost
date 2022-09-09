@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"sync"
@@ -84,7 +83,7 @@ func (db *TitlesDB) downloadFileAndInjest(fileURL string, wg *sync.WaitGroup) {
 
 func (db *TitlesDB) injestTitleDBFile(path string) error {
 	//Load json from the titlesDB file
-	fileContents, err := ioutil.ReadFile(path)
+	fileContents, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to load the Titledb - %w", err)
 	}

@@ -99,7 +99,7 @@ func (server *Server) serveHTTPGameFiles(titleID uint64, version uint32, respWri
 	}
 }
 func (server *Server) renderHTTPGameFiles(titleID uint64, respWriter http.ResponseWriter) {
-	respWriter.Write([]byte("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n<html>\n <head>\n  <title>Index of /</title>\n </head>\n <body>\n<h1>Index of /</h1>\n<ul><ul><li><a href=\"/\"> Parent Directory</a></li>"))
+	_, _ = respWriter.Write([]byte("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n<html>\n <head>\n  <title>Index of /</title>\n </head>\n <body>\n<h1>Index of /</h1>\n<ul><ul><li><a href=\"/\"> Parent Directory</a></li>"))
 	records, ok := server.library.FileIndex.GetTitleRecords(titleID)
 
 	if ok {
@@ -109,7 +109,7 @@ func (server *Server) renderHTTPGameFiles(titleID uint64, respWriter http.Respon
 			fileFinalName := fmt.Sprintf("%s - %s - [%d][v%d]", utilities.CleanName(file.Name), fType, file.TitleID, file.Version)
 			base := fmt.Sprintf("%d-%d%s", file.TitleID, file.Version, ext)
 
-			respWriter.Write([]byte(fmt.Sprintf("<li><a href=\"%s\"> %s</a></li>\n", base, fileFinalName)))
+			_, _ = respWriter.Write([]byte(fmt.Sprintf("<li><a href=\"%s\"> %s</a></li>\n", base, fileFinalName)))
 		}
 		if records.BaseTitle != nil {
 			writeFile(respWriter, *records.BaseTitle, "Base")
@@ -123,18 +123,16 @@ func (server *Server) renderHTTPGameFiles(titleID uint64, respWriter http.Respon
 		}
 
 	}
-	respWriter.Write([]byte("</ul>\n</body></html>"))
+	_, _ = respWriter.Write([]byte("</ul>\n</body></html>"))
 }
 func (server *Server) renderHTTPGameIndex(respWriter http.ResponseWriter, req *http.Request) {
-	respWriter.Write([]byte("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n<html>\n <head>\n  <title>Index of /</title>\n </head>\n <body>\n<h1>Index of /</h1>\n<ul><ul><li><a href=\"/\"> Parent Directory</a></li>"))
+	_, _ = respWriter.Write([]byte("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n<html>\n <head>\n  <title>Index of /</title>\n </head>\n <body>\n<h1>Index of /</h1>\n<ul><ul><li><a href=\"/\"> Parent Directory</a></li>"))
 	allTitles := server.library.FileIndex.ListTitleFiles()
 	for _, file := range allTitles {
-		ext := path.Ext(file.Path)
-		ext = strings.ToLower(ext)
 		fileFinalName := fmt.Sprintf("%s [%016X]", utilities.CleanName(file.Name), file.TitleID)
 		base := fmt.Sprintf("%d/", file.TitleID)
 
-		respWriter.Write([]byte(fmt.Sprintf("<li><a href=\"%s\"> %s/</a></li>\n", base, fileFinalName)))
+		_, _ = respWriter.Write([]byte(fmt.Sprintf("<li><a href=\"%s\"> %s/</a></li>\n", base, fileFinalName)))
 	}
-	respWriter.Write([]byte("</ul>\n</body></html>"))
+	_, _ = respWriter.Write([]byte("</ul>\n</body></html>"))
 }

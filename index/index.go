@@ -249,9 +249,7 @@ func (idx *Index) GetAllRecordsForTitle(titleID uint64) []FileOnDiskRecord {
 	if record.Update != nil {
 		resp = append(resp, *record.Update)
 	}
-	for _, dlcRecord := range record.DLC {
-		resp = append(resp, dlcRecord)
-	}
+	resp = append(resp, record.DLC...)
 	return resp
 }
 
