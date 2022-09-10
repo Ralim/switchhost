@@ -2,9 +2,9 @@ package library
 
 import (
 	"fmt"
+	"github.com/ralim/switchhost/versionsdb"
 	"io"
 	"os"
-	"runtime"
 	"sync"
 
 	"github.com/ralim/switchhost/formats"
@@ -36,9 +36,10 @@ type Library struct {
 	FileIndex *index.Index
 
 	//Privates
-	keys     *keystore.Keystore
-	settings *settings.Settings
-	titledb  *titledb.TitlesDB
+	keys      *keystore.Keystore
+	settings  *settings.Settings
+	titledb   *titledb.TitlesDB
+	versiondb *versionsdb.VersionDB
 
 	waitgroup *sync.WaitGroup
 	//These channels are used for decoupling the workers for each state of the file import pipeline
@@ -60,12 +61,13 @@ type Library struct {
 	organisationLocking organisationLocks
 }
 
-func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings, ui *termui.TermUI) *Library {
+func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings, ui *termui.TermUI, versions *versionsdb.VersionDB) *Library {
 	library := &Library{
-		titledb:  titledb,
-		settings: settings,
-		ui:       ui,
-		keys:     nil,
+		titledb:   titledb,
+		settings:  settings,
+		versiondb: versions,
+		ui:        ui,
+		keys:      nil,
 		// Channels
 		fileMetaScanRequests:       make(chan *fileScanningInfo, settings.QueueLength),
 		fileValidationScanRequests: make(chan *fileScanningInfo, settings.QueueLength),
@@ -95,7 +97,7 @@ func (lib *Library) LoadKeys(keysDBReader io.Reader) error {
 	return nil
 }
 
-//Start spawns internal workers and performs any non-trivial setup time tasks
+// Start spawns internal workers and performs any non-trivial setup time tasks
 func (lib *Library) Start() {
 	//Check output folder exists if sorting enabled
 	if lib.settings.EnableSorting {
@@ -112,7 +114,7 @@ func (lib *Library) Start() {
 	// Internal states of the chain (except organisation) run multiple workers to utilise more cores
 	// Process up to CPU count steps at once for each type
 	// This will overschedule the tasks to run usually, but we are _super_ IO blocked so its usually OK
-	for i := 0; i < runtime.NumCPU(); i++ {
+	for i := 0; i < lib.settings.GetCPUCount(); i++ {
 		lib.waitgroup.Add(1)
 		go lib.fileMetadataWorker()
 

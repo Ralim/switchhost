@@ -3,9 +3,9 @@ package settings
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	stdlog "log"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -26,6 +26,7 @@ type Settings struct {
 
 	PreferredLangOrder []int    `json:"preferredLanguageOrder"` // List of language id's to use when parsing CNMT data area
 	TitlesDBURLs       []string `json:"titlesDbUrls"`           // URL's to use when loading the local titledb
+	VersionsDBURL      string   `json:"versionsDBURL"`          // Versions JSON for updates
 	FoldersToScan      []string `json:"sourceFolders"`          // Folders to look for new files in
 	CacheFolder        string   `json:"cacheFolder"`            // Folder to cache downloads and other temp files, if preserved will avoid re-downloads. Can be /tmp/ though
 	// Organisation
@@ -50,9 +51,9 @@ type Settings struct {
 	ServerMOTD      string     `json:"serverMOTD"`    // Server title used for public facing info
 
 	// Incoming
-	UploadingAllowed bool   `json:"uploadingAllowed"` // Can FTP be used to push new files
-	TempFilesFolder  string `json:"tempFilesFolder"`  // Temporary file storage location for FTP uploads
-
+	UploadingAllowed bool   `json:"uploadingAllowed"`  // Can FTP be used to push new files
+	TempFilesFolder  string `json:"tempFilesFolder"`   // Temporary file storage location for FTP uploads
+	OpTheadCounts    int    `json:"workerThreadCount"` // Optional thread count override
 	// File validation
 	ValidateLibrary         bool `json:"validateLibrary"`       // If all files found in the main library location are validated for checksums
 	ValidateNewFiles        bool `json:"validateUploads"`       // If uploads must validate before being added, even if above toggles are off
@@ -78,6 +79,7 @@ type Settings struct {
 func NewSettings(path string) *Settings {
 
 	settings := &Settings{
+		OpTheadCounts:          -1, // No thread count override
 		filePath:               path,
 		PreferredLangOrder:     []int{1, 0},
 		FoldersToScan:          []string{"./incoming_files"},                                         // Search locations
@@ -124,18 +126,19 @@ func NewSettings(path string) *Settings {
 			"https://raw.githubusercontent.com/blawar/titledb/master/US.en.json",
 			"https://raw.githubusercontent.com/blawar/titledb/master/AU.en.json",
 		},
+		VersionsDBURL: "https://raw.githubusercontent.com/blawar/titledb/master/versions.json",
 	}
 	// Load the settings file if it exsts, which will override the defaults above if specified
 	settings.Load()
 	// Clean up paths
-	settings.cleanpaths()
+	settings.cleanPaths()
 	// Save to preserve if we have added anything to the file, and drop no-longer used settings for clarity
 	settings.Save()
 	log.Info().Msg("Settings loaded, merged and saved")
 	return settings
 }
 func (s *Settings) LoadFrom(reader io.Reader) {
-	data, err := ioutil.ReadAll(reader)
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return
 	}
@@ -146,7 +149,7 @@ func (s *Settings) LoadFrom(reader io.Reader) {
 func (s *Settings) Load() {
 	//Load existing settings file if possible; if not load do nothing
 	log.Info().Str("path", s.filePath).Msg("Loading settings")
-	data, err := ioutil.ReadFile(s.filePath)
+	data, err := os.ReadFile(s.filePath)
 	if err != nil {
 		return
 	}
@@ -171,7 +174,7 @@ func (s *Settings) Save() {
 		log.Warn().Err(err).Msg("Couldn't save settings - JSONification")
 		return
 	}
-	if err = ioutil.WriteFile(s.filePath, data, 0666); err != nil {
+	if err = os.WriteFile(s.filePath, data, 0666); err != nil {
 		log.Warn().Err(err).Msg("Couldn't save settings - writing file")
 	}
 }
@@ -216,7 +219,7 @@ func (s *Settings) SetupLogging(logoutput io.Writer) {
 	}
 }
 
-func (s *Settings) cleanpaths() {
+func (s *Settings) cleanPaths() {
 	//Since users may make mistakes and start or end the paths with a string, clean all of these up
 	s.TempFilesFolder = strings.TrimSpace(s.TempFilesFolder)
 	s.StorageFolder = strings.TrimSpace(s.StorageFolder)
@@ -225,4 +228,11 @@ func (s *Settings) cleanpaths() {
 		s.FoldersToScan[i] = strings.TrimSpace(v)
 	}
 
+}
+
+func (s *Settings) GetCPUCount() int {
+	if s.OpTheadCounts > 0 {
+		return s.OpTheadCounts
+	}
+	return runtime.NumCPU()
 }

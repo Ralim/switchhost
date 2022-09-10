@@ -19,19 +19,19 @@ func TestStopStart(t *testing.T) {
 		NSZCommandLine: "sleep 0.1",
 		QueueLength:    2,
 	}
-	lib := NewLibrary(nil, &sett, nil)
+	lib := NewLibrary(nil, &sett, nil, nil)
 
 	//Inject some pending requests
 	lib.fileCompressionRequests <- &fileScanningInfo{
 		path: "0.02",
 	}
-	startime := time.Now()
+	now := time.Now()
 	lib.Start()
 	//Yield to let our sleep be selected before the close
 	time.Sleep(time.Millisecond * 100)
 	fmt.Println(".........")
 	lib.Stop()
-	duration := time.Since(startime)
+	duration := time.Since(now)
 
 	if duration.Milliseconds() < 100 {
 		t.Error("Didnt wait for the sleep")

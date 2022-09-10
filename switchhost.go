@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/ralim/switchhost/versionsdb"
 	"os"
 	"os/signal"
 	"path"
@@ -22,10 +23,11 @@ type SwitchHost struct {
 	KeysFilePath   string `flag:"keys" help:"Path to your switch's keyfile"`
 	NoCUI          bool   `flag:"noCUI" help:"Disable the Console UI"`
 
-	lib      *library.Library   `flag:"-"`
-	ui       *termui.TermUI     `flag:"-"`
-	settings *settings.Settings `flag:"-"`
-	titleDB  *titledb.TitlesDB  `flag:"-"`
+	lib       *library.Library      `flag:"-"`
+	ui        *termui.TermUI        `flag:"-"`
+	settings  *settings.Settings    `flag:"-"`
+	titleDB   *titledb.TitlesDB     `flag:"-"`
+	versionDB *versionsdb.VersionDB `flag:"-"`
 }
 
 func NewSwitchHost() *SwitchHost {
@@ -62,10 +64,11 @@ func (m *SwitchHost) Run() error {
 		}()
 	}
 
+	m.loadVersionInfo()
 	// Download TitlesDB
 	m.loadTitlesDB()
 
-	m.lib = library.NewLibrary(m.titleDB, m.settings, m.ui)
+	m.lib = library.NewLibrary(m.titleDB, m.settings, m.ui, m.versionDB)
 
 	m.tryAndLoadKeys()
 
@@ -121,6 +124,17 @@ func (m *SwitchHost) loadTitlesDB() {
 	m.titleDB = titledb.CreateTitlesDB(m.settings)
 	m.titleDB.UpdateTitlesDB()
 
+}
+
+func (m *SwitchHost) loadVersionInfo() {
+
+	if m.ui != nil {
+		versionInfo := m.ui.RegisterTask("Version Info")
+		versionInfo.UpdateStatus("Downloading")
+		defer versionInfo.UpdateStatus("Done")
+	}
+	versionInfo := versionsdb.NewVersionDBFromURL(m.settings.VersionsDBURL, m.settings.CacheFolder)
+	m.versionDB = versionInfo
 }
 func (m *SwitchHost) tryAndLoadKeys() {
 	//First try cli arg path if we can

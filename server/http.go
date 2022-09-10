@@ -144,6 +144,27 @@ func (server *Server) httpHandleIndex(respWriter http.ResponseWriter, req *http.
 		return
 	}
 }
+
+func (server *Server) httpHandleGameInfo(respWriter http.ResponseWriter, req *http.Request) {
+	if req.Method != "GET" {
+		http.Error(respWriter, "Only GET is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	respWriter.Header().Set("Content-Type", "text/html; charset=UTF-8")
+	param, _ := ShiftPath(req.URL.Path)
+	titleID, err := strconv.ParseUint(param, 10, 64)
+
+	if err != nil {
+		http.Error(respWriter, "Bad TitleID", http.StatusBadRequest)
+		return
+	}
+	err = server.webui.RenderTitleInfo(titleID, respWriter)
+
+	if err != nil {
+		http.Error(respWriter, "Sending file failed", http.StatusInternalServerError)
+		return
+	}
+}
 func (server *Server) httpHandleCSS(respWriter http.ResponseWriter, _ *http.Request) {
 	respWriter.Header().Set("Content-Type", "text/css")
 	_, err := respWriter.Write(webui.SkeletonCss)
@@ -207,12 +228,16 @@ func (server *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	switch head {
 	case "vfile":
 		server.httpHandlevFile(res, req)
+	case "vIndex":
+		server.httpHandleVirtualIndex(res, req)
 	case "index.json":
 		server.httpHandleJSON(res, req)
 	case "titledb.json":
 		server.httpHandleTitlesDB(res, req)
 	case "skeleton.min.css":
 		server.httpHandleCSS(res, req)
+	case "updates.json":
+		server.handleServingUpdatesList(res, req)
 	case "index.html":
 		fallthrough
 	case "":
@@ -221,12 +246,14 @@ func (server *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		server.httpHandleIndex(res, req)
 	case "config":
 		server.httpHandleConfig(res, req)
+	case "info":
+		server.httpHandleGameInfo(res, req)
 	default:
 		res.WriteHeader(http.StatusNotFound)
 	}
 }
 
-//ShiftPath splits off the front portion of the provided path into head and then returns the remainder in tail
+// ShiftPath splits off the front portion of the provided path into head and then returns the remainder in tail
 func ShiftPath(pathIn string) (head, tail string) {
 	pathIn = path.Clean("/" + pathIn)
 	i := strings.Index(pathIn[1:], "/") + 1

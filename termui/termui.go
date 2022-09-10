@@ -28,11 +28,11 @@ func NewTermUI(noUI bool) *TermUI {
 		tasks:   []*TaskState{},
 		running: false,
 	}
-	t.Statistics = newStatistics(t.app)
 	if noUI {
 		return t
 	}
 	t.app = tview.NewApplication()
+	t.Statistics = newStatistics(t.app)
 
 	//Logs stream
 
