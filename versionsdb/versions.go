@@ -54,7 +54,7 @@ func NewVersionDB(r io.Reader) *VersionDB {
 			value = existing
 		}
 		//Find newest version
-		for k, _ := range versions {
+		for k := range versions {
 			thisVersion := uint64(0)
 			if thisVersion, err = strconv.ParseUint(k, 10, 32); err != nil {
 				log.Warn().Err(err).Str("value", k).Msg("Title version failed parsing in versions update")
@@ -69,8 +69,12 @@ func NewVersionDB(r io.Reader) *VersionDB {
 	return db
 }
 
-func (db *VersionDB) LookupLatestVersion(titleID uint64) {
+// LookupLatestVersion returns the newest version for this TitleID or 0 if none found
+func (db *VersionDB) LookupLatestVersion(titleID uint64) uint32 {
 	db.RLock()
 	defer db.RUnlock()
-
+	if newest, ok := db.latestVersions[titleID]; ok {
+		return newest
+	}
+	return 0
 }

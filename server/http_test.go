@@ -15,24 +15,24 @@ import (
 )
 
 func maketestServer(t *testing.T) (*Server, *library.Library, string) {
-	temp_folder, err := os.MkdirTemp("", "unit_test")
+	tempFolder, err := os.MkdirTemp("", "unit_test")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	settings := settings.NewSettings(path.Join(temp_folder, "settings.json"))
+	settings := settings.NewSettings(path.Join(tempFolder, "settings.json"))
 	settings.ServerMOTD = "SwitchRoooooot" // using different one to ensure its honoured
 	titledb := titledb.CreateTitlesDB(settings)
-	lib := library.NewLibrary(titledb, settings, nil)
+	lib := library.NewLibrary(titledb, settings, nil, nil)
 	server := NewServer(lib, titledb, settings)
-	return server, lib, temp_folder
+	return server, lib, tempFolder
 }
 
 func TestHTTPServerbasics(t *testing.T) {
 	t.Parallel()
 
-	server, lib, temp_folder := maketestServer(t)
-	defer os.RemoveAll(temp_folder)
+	server, lib, tempFolder := maketestServer(t)
+	defer os.RemoveAll(tempFolder)
 
 	//Now we can fake poke server handlers
 	tempBuffer := bytes.NewBuffer([]byte{})
@@ -68,8 +68,8 @@ func TestHTTPServerbasics(t *testing.T) {
 func TestHTTPFileServingJSON(t *testing.T) {
 	t.Parallel()
 
-	server, _, temp_folder := maketestServer(t)
-	defer os.RemoveAll(temp_folder)
+	server, _, tempFolder := maketestServer(t)
+	defer os.RemoveAll(tempFolder)
 
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter.
@@ -103,8 +103,8 @@ func TestHTTPFileServingJSON(t *testing.T) {
 func TestHTTPFileServingBinary(t *testing.T) {
 	t.Parallel()
 
-	server, lib, temp_folder := maketestServer(t)
-	defer os.RemoveAll(temp_folder)
+	server, lib, tempFolder := maketestServer(t)
+	defer os.RemoveAll(tempFolder)
 
 	file := &index.FileOnDiskRecord{
 		Path:    "../testing_files/UnitTest_[05123A0000000000].nsp",
@@ -144,8 +144,8 @@ func TestHTTPFileServingBinary(t *testing.T) {
 func TestHTTPFileServingBinaryRangeBytes(t *testing.T) {
 	t.Parallel()
 
-	server, lib, temp_folder := maketestServer(t)
-	defer os.RemoveAll(temp_folder)
+	server, lib, tempFolder := maketestServer(t)
+	defer os.RemoveAll(tempFolder)
 
 	file := &index.FileOnDiskRecord{
 		Path:    "../testing_files/UnitTest_[05123A0000000000].nsp",

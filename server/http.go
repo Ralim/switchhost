@@ -236,6 +236,8 @@ func (server *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		server.httpHandleTitlesDB(res, req)
 	case "skeleton.min.css":
 		server.httpHandleCSS(res, req)
+	case "updates.json":
+		server.handleServingUpdatesList(res, req)
 	case "index.html":
 		fallthrough
 	case "":

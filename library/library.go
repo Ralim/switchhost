@@ -2,6 +2,7 @@ package library
 
 import (
 	"fmt"
+	"github.com/ralim/switchhost/versionsdb"
 	"io"
 	"os"
 	"sync"
@@ -35,9 +36,10 @@ type Library struct {
 	FileIndex *index.Index
 
 	//Privates
-	keys     *keystore.Keystore
-	settings *settings.Settings
-	titledb  *titledb.TitlesDB
+	keys      *keystore.Keystore
+	settings  *settings.Settings
+	titledb   *titledb.TitlesDB
+	versiondb *versionsdb.VersionDB
 
 	waitgroup *sync.WaitGroup
 	//These channels are used for decoupling the workers for each state of the file import pipeline
@@ -59,12 +61,13 @@ type Library struct {
 	organisationLocking organisationLocks
 }
 
-func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings, ui *termui.TermUI) *Library {
+func NewLibrary(titledb *titledb.TitlesDB, settings *settings.Settings, ui *termui.TermUI, versions *versionsdb.VersionDB) *Library {
 	library := &Library{
-		titledb:  titledb,
-		settings: settings,
-		ui:       ui,
-		keys:     nil,
+		titledb:   titledb,
+		settings:  settings,
+		versiondb: versions,
+		ui:        ui,
+		keys:      nil,
 		// Channels
 		fileMetaScanRequests:       make(chan *fileScanningInfo, settings.QueueLength),
 		fileValidationScanRequests: make(chan *fileScanningInfo, settings.QueueLength),
