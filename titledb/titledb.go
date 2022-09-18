@@ -1,6 +1,7 @@
 package titledb
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -84,6 +85,8 @@ func (db *TitlesDB) downloadFileAndInjest(fileURL string, wg *sync.WaitGroup) {
 func (db *TitlesDB) injestTitleDBFile(path string) error {
 	//Load json from the titlesDB file
 	fileContents, err := os.ReadFile(path)
+	//Strip nulls
+	fileContents = bytes.Replace(fileContents, []byte{'\x00'}, []byte{}, -1)
 	if err != nil {
 		return fmt.Errorf("failed to load the Titledb - %w", err)
 	}
