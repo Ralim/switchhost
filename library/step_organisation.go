@@ -93,7 +93,7 @@ func (lib *Library) organisationEventHandler(event *fileScanningInfo, status *te
 		if gameTitle, err := lib.QueryGameTitleFromTitleID(info.TitleID); err == nil {
 			record.Name = gameTitle
 		}
-		if lib.ui != nil {
+		if lib.ui != nil && lib.ui.Statistics != nil {
 			defer lib.ui.Statistics.Redraw()
 		}
 		lib.FileIndex.AddFileRecord(record)
