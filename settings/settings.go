@@ -40,6 +40,7 @@ type Settings struct {
 	PreferCompressed bool `json:"preferCompressed"` // Prefer compressed form of files on duplicate
 
 	//Serving files
+	PublicIP        string     `json:"publicIP"`
 	HTTPPort        int        `json:"httpPort"`        // Port used for HTTP
 	FTPPort         int        `json:"ftpPort"`         // Port used for FTP
 	FTPPassivePorts string     `json:"FTPPassivePorts"` // Passive port range for FTP
@@ -92,6 +93,7 @@ func NewSettings(path string) *Settings {
 		FTPPort:                2121,                                                                 // Ports
 		FTPPassivePorts:        "2130-2140",                                                          // FTP Passive ports
 		FTPHost:                "::",                                                                 // Default to all ftp hosts
+		PublicIP:               "",                                                                   // Default to not set
 		ServerMOTD:             "Switchroot",                                                         // MOTD to include in the json file
 		LogLevel:               1,                                                                    // Info
 		LogFilePath:            "",                                                                   // No log file

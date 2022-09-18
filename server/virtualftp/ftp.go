@@ -30,14 +30,21 @@ func CreateVirtualFTP(lib *library.Library, settings *settings.Settings) *FTPSer
 	driver := NewDriver(lib, settings)
 	perm := ftpserver.NewSimplePerm("switch", "switch")
 	opt := &ftpserver.Options{
-		Name:           "switchhost",
+		Commands:       nil,
 		Driver:         driver,
-		Port:           settings.FTPPort,
 		Auth:           driver,
 		Perm:           perm,
-		WelcomeMessage: settings.ServerMOTD,
-		PassivePorts:   settings.FTPPassivePorts,
+		Name:           "switchhost",
 		Hostname:       settings.FTPHost,
+		PublicIP:       settings.PublicIP,
+		PassivePorts:   settings.FTPPassivePorts,
+		Port:           settings.FTPPort,
+		TLS:            false,
+		ExplicitFTPS:   false,
+		ForceTLS:       false,
+		WelcomeMessage: settings.ServerMOTD,
+		Logger:         nil,
+		RateLimit:      0,
 	}
 	// start ftp server
 	ftpServer, err := ftpserver.NewServer(opt)
