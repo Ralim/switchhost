@@ -15,7 +15,7 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w"  -o /bin/switchhost
 FROM python:3.10-slim-bullseye
 
 WORKDIR /switchhost/
-RUN  pip3 install git+https://github.com/nicoboss/nsz.git@cfe2cbee0eec1451f702f90e6072bc935bb7e118 && apt-get update && apt-get install -y curl && apt-get purge
+RUN  pip3 install nsz==4.1.0 && apt-get update && apt-get install -y curl && apt-get purge
 COPY --from=build /bin/switchhost ./switchhost
 
 # Run healthcheck against the web ui
