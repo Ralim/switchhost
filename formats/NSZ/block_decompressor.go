@@ -63,7 +63,6 @@ func NewBlockDecompressor(reader io.ReadSeeker) (*Decompressor, error) {
 
 func (d *Decompressor) Read(p []byte) (n int, err error) {
 	//read out from the existing zstd compressor if it exists
-	n = 0
 	if d.currentDecompressor != nil || d.currentNotCompressedReader != nil {
 		//Try and read as much as we can from this existing compressor
 		if d.currentDecompressor != nil {
