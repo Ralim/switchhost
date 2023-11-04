@@ -1,4 +1,4 @@
-FROM golang:1.20-bullseye AS build
+FROM golang:1-bookworm AS build
 
 WORKDIR /src/
 # Pull in deps first to ease cache
@@ -12,10 +12,10 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w"  -o /bin/switchhost
 
 # Now create the runtime container from python base for nsz
 
-FROM python:3.11-slim-bullseye
+FROM python:3.12-slim-bookworm
 
 WORKDIR /switchhost/
-RUN  pip3 install nsz==4.1.0 && apt-get update && apt-get install -y curl && apt-get purge
+RUN  pip3 install nsz==4.5.0 && apt-get update && apt-get install -y curl && apt-get purge
 COPY --from=build /bin/switchhost ./switchhost
 
 # Run healthcheck against the web ui
