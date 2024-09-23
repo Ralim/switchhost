@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/ralim/switchhost/versionsdb"
 	"os"
 	"os/signal"
 	"path"
 	"path/filepath"
 
+	"github.com/ralim/switchhost/versionsdb"
 	"github.com/ralim/switchhost/library"
 	"github.com/ralim/switchhost/server"
 	"github.com/ralim/switchhost/settings"
@@ -108,13 +108,12 @@ func (m *SwitchHost) checkKeys(pathUsed string) {
 				}
 			}
 		} else {
-			log.Warn().Err(err).Msg("Failed to copy the prod.keys file,as could not make folder; nsz.py may not work")
+			log.Warn().Err(err).Msg("Failed to copy the prod.keys file, as could not make folder; nsz.py may not work")
 		}
 	}
 }
 
 func (m *SwitchHost) loadTitlesDB() {
-
 	if m.ui != nil {
 		titlesDBInfo := m.ui.RegisterTask("TitlesDB")
 		titlesDBInfo.UpdateStatus("Downloading")
