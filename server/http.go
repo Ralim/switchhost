@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/subtle"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -179,7 +180,26 @@ func (server *Server) checkAuth(req *http.Request) bool {
 	}
 	username, password, ok := req.BasicAuth()
 	if !ok {
-		return false
+		// If the url contains a token as a query parameter, use that as the auth
+		token := req.URL.Query().Get("token")
+		if token != "" {
+			// Split the token into username and password by the first colon after base64 decoding
+			decoded, err := base64.StdEncoding.DecodeString(token)
+			if err != nil {
+				// Split decoded on the colon into username/password
+				// If there is no colon, return false
+				decoded_str := string(decoded)
+				split := strings.SplitN(decoded_str, ":", 2)
+				if len(split) != 2 {
+					return false
+				}
+				username = split[0]
+				password = split[1]
+			}
+
+		} else {
+			return false
+		}
 	}
 
 	match := false
