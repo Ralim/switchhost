@@ -28,7 +28,7 @@ func (server *Server) GenerateVirtualFilePath(file index.FileOnDiskRecord, hostN
 	ext = strings.ToLower(ext)
 	fileFinalName := fmt.Sprintf("%s [%016X][v%d]%s", utilities.CleanName(file.Name), file.TitleID, file.Version, ext)
 	base := fmt.Sprintf("/vfile/%d/%d/data.bin#%s", file.TitleID, file.Version, fileFinalName)
-	if useHTTPS {
+	if useHTTPS || (server.settings.HTTPSRewriteDomain == hostNameToUse) {
 		base = "https://" + hostNameToUse + base
 	} else {
 		base = "http://" + hostNameToUse + base

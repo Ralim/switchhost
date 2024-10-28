@@ -40,16 +40,17 @@ type Settings struct {
 	PreferCompressed bool `json:"preferCompressed"` // Prefer compressed form of files on duplicate
 
 	//Serving files
-	PublicIP        string     `json:"publicIP"`
-	HTTPPort        int        `json:"httpPort"`        // Port used for HTTP
-	FTPPort         int        `json:"ftpPort"`         // Port used for FTP
-	FTPPassivePorts string     `json:"FTPPassivePorts"` // Passive port range for FTP
-	FTPHost         string     `json:"FTPHost"`
-	AllowAnonFTP    bool       `json:"allowAnonFTP"`  // Allow anon (open to public) FTP
-	AllowAnonHTTP   bool       `json:"allowAnonHTTP"` // Allow anon (open to public) HTTP
-	Users           []AuthUser `json:"users"`         // User accounts
-	JSONLocations   []string   `json:"jsonLocations"` // Extra locations to add to locations field in json for backup instances
-	ServerMOTD      string     `json:"serverMOTD"`    // Server title used for public facing info
+	HTTPSRewriteDomain string     `json:"httpsRewriteDomain"` // If this domain is used for HTTP, use HTTPS in response
+	PublicIP           string     `json:"publicIP"`           // Public IP, required for FTP
+	HTTPPort           int        `json:"httpPort"`           // Port used for HTTP
+	FTPPort            int        `json:"ftpPort"`            // Port used for FTP
+	FTPPassivePorts    string     `json:"FTPPassivePorts"`    // Passive port range for FTP
+	FTPHost            string     `json:"FTPHost"`            //
+	AllowAnonFTP       bool       `json:"allowAnonFTP"`       // Allow anon (open to public) FTP
+	AllowAnonHTTP      bool       `json:"allowAnonHTTP"`      // Allow anon (open to public) HTTP
+	Users              []AuthUser `json:"users"`              // User accounts
+	JSONLocations      []string   `json:"jsonLocations"`      // Extra locations to add to locations field in json for backup instances
+	ServerMOTD         string     `json:"serverMOTD"`         // Server title used for public facing info
 
 	// Incoming
 	UploadingAllowed bool   `json:"uploadingAllowed"`  // Can FTP be used to push new files
