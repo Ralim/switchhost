@@ -1,16 +1,18 @@
 package server
 
 import (
+	"encoding/base64"
 	"fmt"
-	"github.com/ralim/switchhost/index"
-	"github.com/ralim/switchhost/utilities"
-	"github.com/rs/zerolog/log"
 	"io"
 	"net/http"
 	"os"
 	"path"
 	"strconv"
 	"strings"
+
+	"github.com/ralim/switchhost/index"
+	"github.com/ralim/switchhost/utilities"
+	"github.com/rs/zerolog/log"
 )
 
 // Virtual HTTP index
@@ -27,14 +29,14 @@ func (server *Server) httpHandleVirtualIndex(respWriter http.ResponseWriter, req
 	log.Info().Str("path", req.URL.Path).Str("head", head).Msg("HTTP Request")
 
 	if head == "" {
-		server.renderHTTPGameIndex(respWriter, req)
+		server.renderHTTPGameIndex(respWriter)
 	}
 	baseTitleID, err := strconv.ParseUint(head, 10, 64)
 	if err != nil {
 		return
 	}
 	if len(req.URL.Path) <= 1 {
-		server.renderHTTPGameFiles(baseTitleID, respWriter)
+		server.renderHTTPGameFiles(baseTitleID, respWriter, req)
 		return
 	}
 	//Otherwise its a file request
@@ -98,18 +100,21 @@ func (server *Server) serveHTTPGameFiles(titleID uint64, version uint32, respWri
 		_, _ = io.Copy(respWriter, file)
 	}
 }
-func (server *Server) renderHTTPGameFiles(titleID uint64, respWriter http.ResponseWriter) {
+func (server *Server) renderHTTPGameFiles(titleID uint64, respWriter http.ResponseWriter, req *http.Request) {
 	_, _ = respWriter.Write([]byte("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n<html>\n <head>\n  <title>Index of /</title>\n </head>\n <body>\n<h1>Index of /</h1>\n<ul><ul><li><a href=\"/\"> Parent Directory</a></li>"))
 	records, ok := server.library.FileIndex.GetTitleRecords(titleID)
+	username, password, _ := req.BasicAuth() // If no auth, goes to "" which is fine
+
+	encodedAuthparam := base64.URLEncoding.EncodeToString([]byte(username + ":" + password))
 
 	if ok {
 		writeFile := func(w http.ResponseWriter, file index.FileOnDiskRecord, fType string) {
 			ext := path.Ext(file.Path)
 			ext = strings.ToLower(ext)
 			fileFinalName := fmt.Sprintf("%s - %s - [%d][v%d]", utilities.CleanName(file.Name), fType, file.TitleID, file.Version)
-			base := fmt.Sprintf("%d-%d%s", file.TitleID, file.Version, ext)
+			base := fmt.Sprintf("%d-%d%s?token=%s", file.TitleID, file.Version, ext, encodedAuthparam)
 
-			_, _ = respWriter.Write([]byte(fmt.Sprintf("<li><a href=\"%s\"> %s</a></li>\n", base, fileFinalName)))
+			_, _ = w.Write([]byte(fmt.Sprintf("<li><a href=\"%s\"> %s</a></li>\n", base, fileFinalName)))
 		}
 		if records.BaseTitle != nil {
 			writeFile(respWriter, *records.BaseTitle, "Base")
@@ -125,12 +130,12 @@ func (server *Server) renderHTTPGameFiles(titleID uint64, respWriter http.Respon
 	}
 	_, _ = respWriter.Write([]byte("</ul>\n</body></html>"))
 }
-func (server *Server) renderHTTPGameIndex(respWriter http.ResponseWriter, req *http.Request) {
+func (server *Server) renderHTTPGameIndex(respWriter http.ResponseWriter) {
 	_, _ = respWriter.Write([]byte("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n<html>\n <head>\n  <title>Index of /</title>\n </head>\n <body>\n<h1>Index of /</h1>\n<ul><ul><li><a href=\"/\"> Parent Directory</a></li>"))
 	allTitles := server.library.FileIndex.ListTitleFiles()
 	for _, file := range allTitles {
 		fileFinalName := fmt.Sprintf("%s [%016X]", utilities.CleanName(file.Name), file.TitleID)
-		base := fmt.Sprintf("%d/", file.TitleID)
+		base := fmt.Sprintf("vIndex/%d/", file.TitleID)
 
 		_, _ = respWriter.Write([]byte(fmt.Sprintf("<li><a href=\"%s\"> %s/</a></li>\n", base, fileFinalName)))
 	}
