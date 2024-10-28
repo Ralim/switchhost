@@ -29,7 +29,7 @@ func (server *Server) httpHandleVirtualIndex(respWriter http.ResponseWriter, req
 	log.Info().Str("path", req.URL.Path).Str("head", head).Msg("HTTP Request")
 
 	if head == "" {
-		server.renderHTTPGameIndex(respWriter, req)
+		server.renderHTTPGameIndex(respWriter)
 	}
 	baseTitleID, err := strconv.ParseUint(head, 10, 64)
 	if err != nil {
@@ -103,14 +103,8 @@ func (server *Server) serveHTTPGameFiles(titleID uint64, version uint32, respWri
 func (server *Server) renderHTTPGameFiles(titleID uint64, respWriter http.ResponseWriter, req *http.Request) {
 	_, _ = respWriter.Write([]byte("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n<html>\n <head>\n  <title>Index of /</title>\n </head>\n <body>\n<h1>Index of /</h1>\n<ul><ul><li><a href=\"/\"> Parent Directory</a></li>"))
 	records, ok := server.library.FileIndex.GetTitleRecords(titleID)
-	username, password, ok := req.BasicAuth()
-	if !ok {
-		if !server.settings.AllowAnonHTTP {
-			return
-		}
-		username = ""
-		password = ""
-	}
+	username, password, _ := req.BasicAuth() // If no auth, goes to "" which is fine
+
 	encodedAuthparam := base64.URLEncoding.EncodeToString([]byte(username + ":" + password))
 
 	if ok {
@@ -136,7 +130,7 @@ func (server *Server) renderHTTPGameFiles(titleID uint64, respWriter http.Respon
 	}
 	_, _ = respWriter.Write([]byte("</ul>\n</body></html>"))
 }
-func (server *Server) renderHTTPGameIndex(respWriter http.ResponseWriter, req *http.Request) {
+func (server *Server) renderHTTPGameIndex(respWriter http.ResponseWriter) {
 	_, _ = respWriter.Write([]byte("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n<html>\n <head>\n  <title>Index of /</title>\n </head>\n <body>\n<h1>Index of /</h1>\n<ul><ul><li><a href=\"/\"> Parent Directory</a></li>"))
 	allTitles := server.library.FileIndex.ListTitleFiles()
 	for _, file := range allTitles {
