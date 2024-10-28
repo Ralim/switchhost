@@ -135,7 +135,7 @@ func (server *Server) renderHTTPGameIndex(respWriter http.ResponseWriter) {
 	allTitles := server.library.FileIndex.ListTitleFiles()
 	for _, file := range allTitles {
 		fileFinalName := fmt.Sprintf("%s [%016X]", utilities.CleanName(file.Name), file.TitleID)
-		base := fmt.Sprintf("vIndex/%d/", file.TitleID)
+		base := fmt.Sprintf("%d/", file.TitleID)
 
 		_, _ = respWriter.Write([]byte(fmt.Sprintf("<li><a href=\"%s\"> %s/</a></li>\n", base, fileFinalName)))
 	}
