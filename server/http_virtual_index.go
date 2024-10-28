@@ -112,7 +112,7 @@ func (server *Server) renderHTTPGameFiles(titleID uint64, respWriter http.Respon
 			ext := path.Ext(file.Path)
 			ext = strings.ToLower(ext)
 			fileFinalName := fmt.Sprintf("%s - %s - [%d][v%d]", utilities.CleanName(file.Name), fType, file.TitleID, file.Version)
-			base := fmt.Sprintf("%d-%d%s?token=%s", file.TitleID, file.Version, ext, encodedAuthparam)
+			base := fmt.Sprintf("%d-%d-%s%s", file.TitleID, file.Version, encodedAuthparam, ext)
 
 			_, _ = w.Write([]byte(fmt.Sprintf("<li><a href=\"%s\"> %s</a></li>\n", base, fileFinalName)))
 		}

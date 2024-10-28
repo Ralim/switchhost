@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -180,12 +181,17 @@ func (server *Server) checkAuth(req *http.Request) bool {
 	}
 	username, password, ok := req.BasicAuth()
 	if !ok {
-		// If the url contains a token as a query parameter, use that as the auth
-		token := req.URL.Query().Get("token")
+		// Due to limitations in the DBI file parsing, we cant encode username for files in the URL pararmeters
+		// So we have to check for a token in the URL itself :(
+		//It is the last `-` seperated field in the url before the extension
+		// This is a bit of a hack, but it works
+		chunk := strings.Split(req.URL.Path, "-")
+		// Get the basename (without extension) of the last chunk
+		token := strings.TrimSuffix(filepath.Base(chunk[len(chunk)-1]), filepath.Ext(chunk[len(chunk)-1]))
 		if token != "" {
 			// Split the token into username and password by the first colon after base64 decoding
 			decoded, err := base64.StdEncoding.DecodeString(token)
-			if err != nil {
+			if err == nil {
 				// Split decoded on the colon into username/password
 				// If there is no colon, return false
 				decoded_str := string(decoded)
@@ -196,7 +202,6 @@ func (server *Server) checkAuth(req *http.Request) bool {
 				username = split[0]
 				password = split[1]
 			}
-
 		} else {
 			return false
 		}
