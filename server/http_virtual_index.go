@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path"
@@ -52,6 +53,12 @@ func (server *Server) httpHandleVirtualIndex(respWriter http.ResponseWriter, req
 	if err != nil {
 		return
 	}
+	// Ensure the version fits within the range of a uint32
+	if version > math.MaxUint32 {
+		log.Error().Uint64("version", version).Msg("Version exceeds uint32 range")
+		return
+	}
+
 	server.serveHTTPGameFiles(TitleID, uint32(version), respWriter, req)
 
 }
