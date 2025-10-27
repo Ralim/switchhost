@@ -5,7 +5,7 @@ go 1.24
 require (
 	github.com/jaffee/commandeer v0.6.0
 	github.com/justinas/alice v1.2.0
-	github.com/klauspost/compress v1.18.0
+	github.com/klauspost/compress v1.18.1
 	github.com/rivo/tview v0.42.0
 	github.com/rs/zerolog v1.34.0
 	goftp.io/server/v2 v2.0.2
