@@ -8,7 +8,7 @@ require (
 	github.com/klauspost/compress v1.18.3
 	github.com/rivo/tview v0.42.0
 	github.com/rs/zerolog v1.35.1
-	goftp.io/server/v2 v2.0.2
+	goftp.io/server/v2 v2.0.3
 )
 
 require (
