@@ -1,11 +1,11 @@
 module github.com/ralim/switchhost
 
-go 1.24
+go 1.25
 
 require (
 	github.com/jaffee/commandeer v0.6.0
 	github.com/justinas/alice v1.2.0
-	github.com/klauspost/compress v1.19.2
+	github.com/klauspost/compress v1.20.0
 	github.com/rivo/tview v0.42.0
 	github.com/rs/zerolog v1.35.1
 	goftp.io/server/v2 v2.0.3
