@@ -81,8 +81,8 @@ func (idx *Index) LookupFileInfo(file FileOnDiskRecord) (titledb.TitleDBEntry, b
 }
 
 func (idx *Index) AddFileRecord(file *FileOnDiskRecord) {
-	idx.RWMutex.Lock()
-	defer idx.RWMutex.Unlock()
+	idx.Lock()
+	defer idx.Unlock()
 	//Depending on game type add to the appropriate record
 	//Game updates have the same ProgramId as the main application, except with bitmask 0x800 set.
 	//https://wiki.gbatemp.net/wiki/List_of_Switch_homebrew_titleID
@@ -292,8 +292,8 @@ func (idx *Index) GetTitleRecords(titleID uint64) (TitleOnDiskCollection, bool) 
 
 }
 func (idx *Index) RemoveFile(path string) {
-	idx.RWMutex.Lock()
-	defer idx.RWMutex.Unlock()
+	idx.Lock()
+	defer idx.Unlock()
 	// Scan the list of known files and check if the path matches
 	if oldPath, err := filepath.Abs(path); err == nil {
 		log.Info().Str("path", oldPath).Msg("Delete event")
