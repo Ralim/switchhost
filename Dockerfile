@@ -1,4 +1,4 @@
-FROM golang:1-bookworm AS build
+FROM golang:1.27-bookworm AS build
 
 WORKDIR /src/
 # Pull in deps first to ease cache
@@ -11,11 +11,12 @@ COPY . ./
 RUN CGO_ENABLED=0 go build -ldflags="-s -w"  -o /bin/switchhost
 
 # Now create the runtime container from python base for nsz
+# Pinned to a minor version that has prebuilt zstandard wheels (slim image has no compiler)
 
-FROM python:3-slim-bookworm
+FROM python:3.14-slim-bookworm
 
 WORKDIR /switchhost/
-RUN  pip3 install nsz==4.6.1 && apt-get update && apt-get install -y curl && apt-get purge
+RUN  pip3 install nsz==5.0.0 && apt-get update && apt-get install -y curl && apt-get purge
 COPY --from=build /bin/switchhost ./switchhost
 
 # Run healthcheck against the web ui

@@ -18,10 +18,11 @@ jobs:
           - goarch: arm64
             goos: windows
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: wangyoucao577/go-release-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          goversion: go.mod
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
           extra_files: LICENSE README.md
