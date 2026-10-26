@@ -13,7 +13,7 @@ func TestParseNSPToMetaData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer keyReader.Close()
+	defer func() { _ = keyReader.Close() }()
 	keystore, err := keystore.NewKeystore(keyReader)
 	if err != nil {
 		t.Fatal(err)
@@ -22,7 +22,7 @@ func TestParseNSPToMetaData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer nspReader.Close()
+	defer func() { _ = nspReader.Close() }()
 	settings := settings.NewSettings("/tmp/units.settings")
 	info, err := ParseNSPToMetaData(keystore, settings, nspReader)
 	if err != nil {

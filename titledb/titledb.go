@@ -86,7 +86,7 @@ func (db *TitlesDB) injestTitleDBFile(path string) error {
 	//Load json from the titlesDB file
 	fileContents, err := os.ReadFile(path)
 	//Strip nulls
-	fileContents = bytes.Replace(fileContents, []byte{'\x00'}, []byte{}, -1)
+	fileContents = bytes.ReplaceAll(fileContents, []byte{'\x00'}, []byte{})
 	if err != nil {
 		return fmt.Errorf("failed to load the Titledb - %w", err)
 	}

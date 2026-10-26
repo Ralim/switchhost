@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var ErrCompressionTimeout = errors.New("Compression timed out")
+var ErrCompressionTimeout = errors.New("compression timed out")
 
 // Compression handles compressing files using the existingnsz tooling
 // It runs a single file compression at a time in the background
