@@ -53,7 +53,9 @@ func (lib *Library) fileMetadataWorker() {
 			} else {
 				//File cant be parsed
 				if event.mustCleanupFile {
-					os.Remove(event.path)
+					if err := os.Remove(event.path); err != nil {
+						log.Warn().Err(err).Str("path", event.path).Msg("Failed removing unparsable file")
+					}
 				}
 			}
 			if status != nil {

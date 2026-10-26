@@ -68,7 +68,9 @@ func recursivelyCheckForEmptyFolders(pathin string) {
 					recursivelyCheckForEmptyFolders(path)
 					if empty, err := utilities.IsEmpty(path); err == nil && empty {
 						log.Info().Str("path", path).Msg("Removing empty path")
-						os.Remove(path)
+						if err := os.Remove(path); err != nil {
+							log.Warn().Err(err).Str("path", path).Msg("Failed removing empty path")
+						}
 					}
 				}
 			}
