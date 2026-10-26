@@ -32,7 +32,7 @@ func TestHTTPServerbasics(t *testing.T) {
 	t.Parallel()
 
 	server, lib, tempFolder := maketestServer(t)
-	defer os.RemoveAll(tempFolder)
+	defer func() { _ = os.RemoveAll(tempFolder) }()
 
 	//Now we can fake poke server handlers
 	tempBuffer := bytes.NewBuffer([]byte{})
@@ -69,7 +69,7 @@ func TestHTTPFileServingJSON(t *testing.T) {
 	t.Parallel()
 
 	server, _, tempFolder := maketestServer(t)
-	defer os.RemoveAll(tempFolder)
+	defer func() { _ = os.RemoveAll(tempFolder) }()
 
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter.
@@ -104,7 +104,7 @@ func TestHTTPFileServingBinary(t *testing.T) {
 	t.Parallel()
 
 	server, lib, tempFolder := maketestServer(t)
-	defer os.RemoveAll(tempFolder)
+	defer func() { _ = os.RemoveAll(tempFolder) }()
 
 	file := &index.FileOnDiskRecord{
 		Path:    "../testing_files/UnitTest_[05123A0000000000].nsp",
@@ -145,7 +145,7 @@ func TestHTTPFileServingBinaryRangeBytes(t *testing.T) {
 	t.Parallel()
 
 	server, lib, tempFolder := maketestServer(t)
-	defer os.RemoveAll(tempFolder)
+	defer func() { _ = os.RemoveAll(tempFolder) }()
 
 	file := &index.FileOnDiskRecord{
 		Path:    "../testing_files/UnitTest_[05123A0000000000].nsp",

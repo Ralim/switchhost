@@ -83,7 +83,7 @@ func (server *Server) serveHTTPGameFiles(titleID uint64, version uint32, respWri
 		return
 	}
 
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	//respWriter.Header().Add("content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", name))
 	respWriter.Header().Add("Accept-Ranges", "bytes")
 	rangeHeader, ok := req.Header["Range"]
@@ -121,7 +121,7 @@ func (server *Server) renderHTTPGameFiles(titleID uint64, respWriter http.Respon
 			fileFinalName := fmt.Sprintf("%s - %s - [%d][v%d]", utilities.CleanName(file.Name), fType, file.TitleID, file.Version)
 			base := fmt.Sprintf("%d-%d-%s%s", file.TitleID, file.Version, encodedAuthparam, ext)
 
-			_, _ = w.Write([]byte(fmt.Sprintf("<li><a href=\"%s\"> %s</a></li>\n", base, fileFinalName)))
+			_, _ = fmt.Fprintf(w, "<li><a href=\"%s\"> %s</a></li>\n", base, fileFinalName)
 		}
 		if records.BaseTitle != nil {
 			writeFile(respWriter, *records.BaseTitle, "Base")
@@ -144,7 +144,7 @@ func (server *Server) renderHTTPGameIndex(respWriter http.ResponseWriter) {
 		fileFinalName := fmt.Sprintf("%s [%016X]", utilities.CleanName(file.Name), file.TitleID)
 		base := fmt.Sprintf("%d/", file.TitleID)
 
-		_, _ = respWriter.Write([]byte(fmt.Sprintf("<li><a href=\"%s\"> %s/</a></li>\n", base, fileFinalName)))
+		_, _ = fmt.Fprintf(respWriter, "<li><a href=\"%s\"> %s/</a></li>\n", base, fileFinalName)
 	}
 	_, _ = respWriter.Write([]byte("</ul>\n</body></html>"))
 }

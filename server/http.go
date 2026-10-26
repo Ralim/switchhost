@@ -108,7 +108,7 @@ func (server *Server) httpHandlevFile(respWriter http.ResponseWriter, req *http.
 		return
 	}
 
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 	respWriter.Header().Add("content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", name))
 	respWriter.Header().Add("Accept-Ranges", "bytes")
 	rangeHeader, ok := req.Header["Range"]
@@ -290,8 +290,9 @@ func ShiftPath(pathIn string) (head, tail string) {
 
 func (server *Server) httpHandleConfig(respWriter http.ResponseWriter, req *http.Request) {
 	//If its a get request, we want to send back the current config, if its a post we update our current config and save
-	defer req.Body.Close()
-	if req.Method == http.MethodPost {
+	defer func() { _ = req.Body.Close() }()
+	switch req.Method {
+	case http.MethodPost:
 		if !server.checkSettingsEdit(req) {
 			respWriter.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
 			http.Error(respWriter, "Auth required", http.StatusUnauthorized)
@@ -300,13 +301,13 @@ func (server *Server) httpHandleConfig(respWriter http.ResponseWriter, req *http
 		log.Info().Msg("Loading settings patch from http request")
 		server.settings.LoadFrom(req.Body)
 		server.settings.Save()
-	} else if req.Method == http.MethodGet {
+	case http.MethodGet:
 		respWriter.Header().Set("Content-Type", "application/json")
 		err := server.settings.SaveTo(respWriter)
 		if err != nil {
 			log.Error().Err(err).Msg("Saving settings out failed")
 		}
-	} else {
+	default:
 		http.Error(respWriter, "Bad request type", http.StatusBadRequest)
 	}
 }

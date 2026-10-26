@@ -18,8 +18,10 @@ func TestNSZCompressFile(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	tempFile.Close()
-	defer os.Remove(tempFile.Name())
+	if err := tempFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Remove(tempFile.Name()) }()
 	sett := settings.Settings{
 		NSZCommandLine: "cat ",
 	}
@@ -52,8 +54,10 @@ func TestCompressionWorker(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	tempFile.Close()
-	defer os.Remove(tempFile.Name())
+	if err := tempFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Remove(tempFile.Name()) }()
 	sett := settings.Settings{
 		NSZCommandLine: "rm",
 	}
@@ -88,7 +92,7 @@ func TestCompressionWorker(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.Remove(tmpfile.Name())
+	defer func() { _ = os.Remove(tmpfile.Name()) }()
 	//Test the made new file path
 	lib.settings.NSZCommandLine = "touch"
 	lib.fileCompressionRequests <- &fileScanningInfo{

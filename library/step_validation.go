@@ -67,28 +67,28 @@ func (lib *Library) validateFile(filepath string) bool {
 	ext := strings.ToLower(path.Ext(filepath))
 	if len(ext) == 4 {
 
-		if ext[0:3] == ".ns" {
+		switch ext[0:3] {
+		case ".ns":
 			file, err := os.Open(filepath)
 			if err != nil {
 				return true
 			}
-			defer file.Close()
+			defer func() { _ = file.Close() }()
 			if err := formats.ValidateNSPHash(lib.keys, lib.settings, file); err != nil {
 				log.Warn().Str("path", filepath).Err(err).Msg("Failed validation")
 				return false
 			}
-		} else if ext[0:3] == ".xc" {
+		case ".xc":
 			file, err := os.Open(filepath)
 			if err != nil {
 				return true
 			}
-			defer file.Close()
+			defer func() { _ = file.Close() }()
 			if err := formats.ValidateXCIHash(lib.keys, lib.settings, file); err != nil {
 				log.Warn().Str("path", filepath).Err(err).Msg("Failed validation")
 				return false
 			}
-
-		} else {
+		default:
 			return true // can't validate
 		}
 
