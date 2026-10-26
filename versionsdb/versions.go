@@ -25,7 +25,7 @@ func NewVersionDBFromURL(url, cacheFolder string) *VersionDB {
 	if err != nil {
 		return &VersionDB{}
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	return NewVersionDB(file)
 }
 

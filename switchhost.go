@@ -7,13 +7,13 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/ralim/switchhost/versionsdb"
 	"github.com/ralim/switchhost/library"
 	"github.com/ralim/switchhost/server"
 	"github.com/ralim/switchhost/settings"
 	"github.com/ralim/switchhost/termui"
 	"github.com/ralim/switchhost/titledb"
 	"github.com/ralim/switchhost/utilities"
+	"github.com/ralim/switchhost/versionsdb"
 	"github.com/rivo/tview"
 	"github.com/rs/zerolog/log"
 )
@@ -170,7 +170,7 @@ func (m *SwitchHost) loadKeys(filePath string, lib *library.Library) bool {
 		if err != nil {
 			return false
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		if err := lib.LoadKeys(file); err != nil {
 			log.Info().Err(err).Msg("Could not load keys")
 			return false

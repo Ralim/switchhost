@@ -15,7 +15,7 @@ import (
 	"github.com/ralim/switchhost/settings"
 )
 
-//https://switchbrew.org/wiki/NACP_Format
+// https://switchbrew.org/wiki/NACP_Format
 type Language int
 
 const (

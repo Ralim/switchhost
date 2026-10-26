@@ -202,7 +202,7 @@ func (driver *FTPDriver) GetFile(ctx *ftpserver.Context, path string, offset int
 
 	defer func() {
 		if err != nil && f != nil {
-			f.Close()
+			_ = f.Close()
 		}
 	}()
 
@@ -232,7 +232,7 @@ func (driver *FTPDriver) PutFile(ctx *ftpserver.Context, destPath string, data i
 	}
 
 	//Only allow uploads to resume at 0 or no resume at all
-	if !((offset == 0) || (offset == -1)) {
+	if offset != 0 && offset != -1 {
 		return 0, errors.New("no partial uploads")
 	}
 	//File uploads are filtered by file extension, and anything that isnt a NS? or XC? is rejected
@@ -253,13 +253,18 @@ func (driver *FTPDriver) PutFile(ctx *ftpserver.Context, destPath string, data i
 	// Now drain all the ftp upload into the temp file
 	bytesSaved, err := io.Copy(tmpFile, data)
 	if err != nil {
-		tmpFile.Close()
-		os.Remove(tmpFile.Name())
+		_ = tmpFile.Close()
+		if rerr := os.Remove(tmpFile.Name()); rerr != nil {
+			log.Warn().Err(rerr).Str("path", tmpFile.Name()).Msg("Failed removing temp file after failed FTP upload")
+		}
 		log.Warn().Err(err).Msg("Error during copying data in FTP upload")
 		return 0, err
 	}
 	//Notify the library code to scan this file and sort it or delete it
-	tmpFile.Close()
+	if err := tmpFile.Close(); err != nil {
+		log.Warn().Err(err).Str("path", tmpFile.Name()).Msg("Failed closing FTP upload temp file")
+		return 0, err
+	}
 
 	driver.library.NotifyIncomingFile(tmpFile.Name())
 

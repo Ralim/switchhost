@@ -15,7 +15,7 @@ func TestAuthPutFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(temp_folder)
+	defer func() { _ = os.RemoveAll(temp_folder) }()
 	settings := settings.NewSettings(path.Join(temp_folder, "settings.json"))
 	settings.UploadingAllowed = false
 	driver := NewDriver(nil, settings)
@@ -57,7 +57,7 @@ func TestAuthCheckPasswd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tempFolder)
+	defer func() { _ = os.RemoveAll(tempFolder) }()
 	setting := settings.NewSettings(path.Join(tempFolder, "settings.json"))
 	setting.UploadingAllowed = false
 	driver := NewDriver(nil, setting)

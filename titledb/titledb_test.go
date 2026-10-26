@@ -50,7 +50,7 @@ func TestInjestTitleDBFile(t *testing.T) {
 		t.Fatal("Cannot create temporary file", err)
 	}
 
-	defer os.Remove(tmpFile.Name())
+	defer func() { _ = os.Remove(tmpFile.Name()) }()
 
 	// Example writing to the file
 	if _, err = tmpFile.Write([]byte(sampleRecords)); err != nil {
@@ -128,7 +128,7 @@ func TestInjestTitleDBFileUnhappy(t *testing.T) {
 		t.Fatal("Cannot create temporary file", err)
 	}
 
-	defer os.Remove(tmpFile.Name())
+	defer func() { _ = os.Remove(tmpFile.Name()) }()
 
 	// Example writing to the file
 	if _, err = tmpFile.Write([]byte(notJsonString)); err != nil {
@@ -148,7 +148,7 @@ func TestInjestTitleDBFileUnhappy(t *testing.T) {
 		t.Fatal("Cannot create temporary file", err)
 	}
 
-	defer os.Remove(tmpFile2.Name())
+	defer func() { _ = os.Remove(tmpFile2.Name()) }()
 
 	badTitleString := `
 	{

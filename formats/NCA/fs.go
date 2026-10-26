@@ -72,12 +72,12 @@ func GetFSHeader(ncaHeader *Header, index int) (*FSHeader, error) {
 func (fh *FSHeader) getHashInfo() (*HashInfo, error) {
 	hashInfoBytes := fh.FSHeaderBytes[0x8:0x100]
 	result := HashInfo{}
-	if fh.HashType == 2 {
-
+	switch fh.HashType {
+	case 2:
 		result.PFS0HeaderOffset = binary.LittleEndian.Uint64(hashInfoBytes[0x38 : 0x38+0x8])
 		result.PFS0size = binary.LittleEndian.Uint64(hashInfoBytes[0x40 : 0x40+0x8])
 		return &result, nil
-	} else if fh.HashType == 3 {
+	case 3:
 		result.PFS0HeaderOffset = binary.LittleEndian.Uint64(hashInfoBytes[0x88 : 0x88+0x8])
 		result.PFS0size = binary.LittleEndian.Uint64(hashInfoBytes[0x90 : 0x90+0x8])
 		return &result, nil

@@ -5,6 +5,7 @@ import (
 	"io"
 	stdlog "log"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -99,7 +100,7 @@ func NewSettings(path string) *Settings {
 		LogLevel:               1,                                                                    // Info
 		LogFilePath:            "",                                                                   // No log file
 		OrganisationFormat:     "{TitleName}/{TitleName} {Type} {VersionDec} [{TitleID}][{Version}]", // Path used for organising files
-		NSZCommandLine:         "nsz --verify -w -C -p -t 4 --rm-source ",                            // NSZ command used for file compression
+		NSZCommandLine:         "nsz --verify -w -C -t 4 --rm-source ",                               // NSZ command used for file compression
 		CompressionEnabled:     false,                                                                // Should files be compressed using NSZ
 		PreferCompressed:       true,                                                                 // Should compressed files be preferred over non-compressed on duplicate
 		PreferXCI:              false,                                                                // Should XCI files be preferred over nsp on duplicate
@@ -135,6 +136,7 @@ func NewSettings(path string) *Settings {
 	settings.Load()
 	// Clean up paths
 	settings.cleanPaths()
+	settings.cleanNSZCommandLine()
 	// Save to preserve if we have added anything to the file, and drop no-longer used settings for clarity
 	settings.Save()
 	log.Info().Msg("Settings loaded, merged and saved")
@@ -148,6 +150,7 @@ func (s *Settings) LoadFrom(reader io.Reader) {
 	if err := json.Unmarshal(data, s); err != nil {
 		log.Warn().Err(err).Msg("Couldn't load settings")
 	}
+	s.cleanNSZCommandLine()
 }
 func (s *Settings) Load() {
 	//Load existing settings file if possible; if not load do nothing
@@ -231,6 +234,33 @@ func (s *Settings) cleanPaths() {
 		s.FoldersToScan[i] = strings.TrimSpace(v)
 	}
 
+}
+
+// removedNSZFlags are flags removed in nsz 5.0, which now rejects them as unrecognised arguments.
+// "-p"/"--parseCnmt" behaviour is always enabled in nsz 5.0.
+var removedNSZFlags = map[string]bool{
+	"-p":          true,
+	"--parseCnmt": true,
+}
+
+// cleanNSZCommandLine strips flags the bundled nsz no longer accepts from an nsz command line.
+// Non-nsz commands are left untouched.
+func (s *Settings) cleanNSZCommandLine() {
+	parts := strings.Fields(s.NSZCommandLine)
+	if len(parts) == 0 || strings.TrimSuffix(filepath.Base(parts[0]), ".exe") != "nsz" {
+		return
+	}
+	kept := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if !removedNSZFlags[p] {
+			kept = append(kept, p)
+		}
+	}
+	if len(kept) != len(parts) {
+		cleaned := strings.Join(kept, " ")
+		log.Info().Str("old", s.NSZCommandLine).Str("new", cleaned).Msg("Removed flags unsupported by nsz from NSZCommandLine")
+		s.NSZCommandLine = cleaned
+	}
 }
 
 func (s *Settings) GetCPUCount() int {

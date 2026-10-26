@@ -29,7 +29,7 @@ func (t *TaskState) UpdateStatus(state string) {
 	}
 }
 
-//redraw draws title and contents again
+// redraw draws title and contents again
 func (t *TaskState) redraw() {
 	if t.parent.running {
 		t.parent.app.QueueUpdateDraw(func() {

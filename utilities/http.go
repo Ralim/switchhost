@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func DownloadFileWithVersioning(fileURL, folder string) (string, error) {
+func DownloadFileWithVersioning(fileURL, folder string) (_ string, err error) {
 
 	//Look for <filename>.etag for the etag
 	_, fileName := path.Split(fileURL)
@@ -53,7 +53,11 @@ func DownloadFileWithVersioning(fileURL, folder string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("couldn't download file, writing to file %s failed; url: %s -> %w", outputFile, fileURL, err)
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("couldn't download file, closing file %s failed; url: %s -> %w", outputFile, fileURL, cerr)
+		}
+	}()
 	_, err = io.Copy(f, response.Body)
 	if err != nil {
 		return "", fmt.Errorf("couldn't download file, writing to file %s failed; url: %s -> %w", outputFile, fileURL, err)

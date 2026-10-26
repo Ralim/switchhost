@@ -17,7 +17,7 @@ func TestExists(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	tempFile.Close()
+	_ = tempFile.Close()
 
 	exists := utilities.Exists(tempFile.Name())
 	if !exists {
@@ -27,7 +27,9 @@ func TestExists(t *testing.T) {
 	if !exists {
 		t.Error("should work for known exising folder")
 	}
-	os.Remove(tempFile.Name())
+	if err := os.Remove(tempFile.Name()); err != nil {
+		t.Fatal(err)
+	}
 	exists = utilities.Exists(tempFile.Name())
 	if exists {
 		t.Error("should work for known not-exising files")

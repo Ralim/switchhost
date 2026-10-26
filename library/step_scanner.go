@@ -30,7 +30,7 @@ func (lib *Library) RunScan() {
 	}
 }
 
-//ScanFolder recursively scans the provied folder and feeds it to the organisation queue
+// ScanFolder recursively scans the provied folder and feeds it to the organisation queue
 func (lib *Library) ScanFolder(path string) error {
 	isInLibraryFolder := strings.HasPrefix(path, lib.settings.StorageFolder)
 	return filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
